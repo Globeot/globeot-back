@@ -1,4 +1,4 @@
-package com.globeot.globeotback.user.enum;
+package com.globeot.globeotback.user.enums;
 
 public enum ExchangeStatus {
     APPLYING,

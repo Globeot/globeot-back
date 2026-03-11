@@ -1,4 +1,4 @@
-package com.globeot.globeotback.auth.enum;
+package com.globeot.globeotback.auth.enums;
 
 public enum AuthProvider {
     LOCAL,

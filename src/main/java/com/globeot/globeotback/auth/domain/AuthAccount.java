@@ -1,21 +1,30 @@
 package com.globeot.globeotback.auth.domain;
 
+import com.globeot.globeotback.auth.enums.AuthProvider;
 import com.globeot.globeotback.user.domain.User;
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(
         name = "auth_accounts",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_provider_provider_user_id", columnNames = {"provider", "provider_user_id"}),
-                @UniqueConstraint(name = "uk_user_provider", columnNames = {"user_id", "provider"})
+                @UniqueConstraint(
+                        name = "uk_provider_provider_user_id",
+                        columnNames = {"provider", "provider_user_id"}
+                ),
+                @UniqueConstraint(
+                        name = "uk_user_provider",
+                        columnNames = {"user_id", "provider"}
+                )
         }
 )
 public class AuthAccount {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "auth_id")
     private Long id;
 
     /**
@@ -33,16 +42,16 @@ public class AuthAccount {
     private AuthProvider provider;
 
     /**
-     * provider 측 고유 ID
-     * GOOGLE이면 구글 sub
-     * LOCAL이면 email 또는 내부 식별값
+     * provider 측 고유 사용자 식별값
+     * LOCAL  -> email
+     * GOOGLE -> google sub
      */
     @Column(name = "provider_user_id", nullable = false, length = 255)
     private String providerUserId;
 
     /**
-     * LOCAL일 때만 사용
-     * GOOGLE은 null 가능
+     * LOCAL 계정 비밀번호 해시
+     * GOOGLE 계정은 null 가능
      */
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
@@ -56,21 +65,13 @@ public class AuthAccount {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     protected AuthAccount() {
     }
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-    }
-
-    public AuthAccount(AuthProvider provider, String providerUserId, String passwordHash) {
+    private AuthAccount(AuthProvider provider, String providerUserId, String passwordHash) {
         this.provider = provider;
         this.providerUserId = providerUserId;
         this.passwordHash = passwordHash;
@@ -82,6 +83,18 @@ public class AuthAccount {
 
     public static AuthAccount createGoogleAccount(String googleSub) {
         return new AuthAccount(AuthProvider.GOOGLE, googleSub, null);
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void assignUser(User user) {
@@ -98,6 +111,14 @@ public class AuthAccount {
 
     public void updateLastLoginAt() {
         this.lastLoginAt = LocalDateTime.now();
+    }
+
+    public void softDelete() {
+        this.deletedAt = LocalDateTime.now();
+    }
+
+    public boolean isDeleted() {
+        return this.deletedAt != null;
     }
 
     public boolean isLocalAccount() {
@@ -138,5 +159,9 @@ public class AuthAccount {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
     }
 }
