@@ -77,8 +77,20 @@ public class AuthAccount {
         this.passwordHash = passwordHash;
     }
 
+    public AuthAccount(AuthProvider provider, String providerUserId, String passwordHash, User user) {
+        this.provider = provider;
+        this.providerUserId = providerUserId;
+        this.passwordHash = passwordHash;
+        this.user = user;
+    }
+
+
     public static AuthAccount createLocalAccount(String email, String passwordHash) {
-        return new AuthAccount(AuthProvider.LOCAL, email, passwordHash);
+        AuthAccount account = new AuthAccount();
+        account.provider = AuthProvider.valueOf("LOCAL");             // 반드시 NON NULL
+        account.providerUserId = email;         // 일반적으로 이메일을 USER_ID로 사용
+        account.passwordHash = passwordHash;
+        return account;
     }
 
     public static AuthAccount createGoogleAccount(String googleSub) {
