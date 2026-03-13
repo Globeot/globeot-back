@@ -2,6 +2,7 @@ package com.globeot.globeotback.auth.controller;
 
 import com.globeot.globeotback.auth.dto.*;
 import com.globeot.globeotback.auth.service.AuthService;
+import com.globeot.globeotback.user.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +13,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserRepository userRepository;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, UserRepository userRepository) {
         this.authService = authService;
+        this.userRepository = userRepository;
     }
 
     @PostMapping("/signup")
@@ -29,6 +32,12 @@ public class AuthController {
                         "data", signupResponse
                 )
         );
+    }
+
+    @GetMapping("/check-nickname")
+    public ResponseEntity<Boolean> checkNickname(@RequestParam String nickname) {
+        boolean isAvailable = !userRepository.existsByNickname(nickname);
+        return ResponseEntity.ok(isAvailable);
     }
 
     @PostMapping("/email/send")
