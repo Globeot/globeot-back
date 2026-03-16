@@ -63,29 +63,48 @@ public class AuthService {
 
         validateSchoolEmail(email);
 
+        if (userRepository.existsByEmail(email)) {
+            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+        }
+
         String otp = generateOtp();
 
-        emailVerificationRepository.findByEmail(email).ifPresent(existing -> {
-            if (!existing.isExpired()) {
-                throw new IllegalArgumentException("이메일로 이미 인증번호가 발송되었습니다. 5분 후 다시 시도해주세요.");
-            }
-            // 만료되었으면 삭제하고 새로 발송
-            emailVerificationRepository.delete(existing);
-        });
-
         EmailVerification verification =
-                new EmailVerification(
-                        email,
-                        otp,
-                        LocalDateTime.now().plusMinutes(5)
-                );
+                emailVerificationRepository.findByEmail(email).orElse(null);
+
+        if (verification != null) {
+
+            if (verification.getSendCount() >= 5) {
+                throw new IllegalArgumentException("인증번호 발송 횟수를 초과했습니다.");
+            }
+
+            if (verification.getLastSentAt() != null &&
+                    verification.getLastSentAt().isAfter(LocalDateTime.now().minusSeconds(60))) {
+                throw new IllegalArgumentException("60초 후 다시 요청해주세요.");
+            }
+
+            verification.setOtp(otp);
+            verification.setExpireTime(LocalDateTime.now().plusMinutes(5));
+            verification.setSendCount(verification.getSendCount() + 1);
+            verification.setLastSentAt(LocalDateTime.now());
+
+        } else {
+
+            verification = new EmailVerification(
+                    email,
+                    otp,
+                    LocalDateTime.now().plusMinutes(5)
+            );
+
+            verification.setSendCount(1);
+            verification.setLastSentAt(LocalDateTime.now());
+        }
 
         emailVerificationRepository.save(verification);
 
         emailService.sendOtpMail(email, otp);
     }
-
-    @Transactional
+    @Transactional(noRollbackFor = IllegalArgumentException.class)
     public void verifyOtp(String email, String otp) {
 
         EmailVerification verification =
@@ -93,15 +112,37 @@ public class AuthService {
                         .orElseThrow(() ->
                                 new IllegalArgumentException("인증번호 요청이 없습니다."));
 
+        if (verification.getBlockedUntil() != null &&
+                verification.getBlockedUntil().isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("인증 시도가 너무 많습니다. 1시간 후 다시 시도하세요.");
+        }
+
         if (verification.isExpired()) {
             throw new IllegalArgumentException("인증 시간이 만료되었습니다.");
         }
 
         if (!verification.getOtp().equals(otp)) {
+
+            verification.setVerifyFailCount(
+                    verification.getVerifyFailCount() + 1
+            );
+
+            if (verification.getVerifyFailCount() >= 10) {
+                verification.setBlockedUntil(LocalDateTime.now().plusHours(1));
+            }
+
+            emailVerificationRepository.save(verification);
+
+            if (verification.getVerifyFailCount() == 3) {
+                throw new IllegalArgumentException("인증번호 불일치 3회. 인증번호를 다시 요청해주세요.");
+            }
+
             throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
         }
 
         verification.verify();
+        verification.setVerifyFailCount(0);
+
         emailVerificationRepository.save(verification);
     }
 

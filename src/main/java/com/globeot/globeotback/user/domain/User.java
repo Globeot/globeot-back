@@ -27,6 +27,8 @@ public class User {
     @Column(nullable = false, length = 30)
     private String nickname;
 
+    private LocalDateTime nicknameUpdatedAt;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "exchange_status", nullable = false, length = 30)
     private ExchangeStatus exchangeStatus;
