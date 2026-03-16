@@ -193,6 +193,9 @@ public class AuthService {
             // JWT 발급
             String token = jwtProvider.createToken(user.getId());
 
+            // OTP 정보 삭제
+            emailVerificationRepository.delete(verification);
+
             return new SignupResponseDto(
                     user.getId(),
                     user.getEmail(),
