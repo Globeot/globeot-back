@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -204,12 +205,9 @@ public class AuthService {
             e.printStackTrace(); // 서버 콘솔에 전체 오류 확인
             throw e; // 다시 던져서 rollback 유지
         }
-
-
-
     }
 
-    @Transactional(readOnly = true)
+    @Transactional(noRollbackFor = IllegalArgumentException.class)
     public LoginResponseDto login(LoginRequestDto request) {
 
         AuthAccount authAccount =
@@ -225,13 +223,53 @@ public class AuthService {
                 request.getPassword(),
                 authAccount.getPasswordHash()
         )) {
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다");
+
+            System.out.println("before: " + authAccount.getLoginFailCount());
+            authAccount.setLoginFailCount(
+                    authAccount.getLoginFailCount() + 1
+            );
+            System.out.println("after: " + authAccount.getLoginFailCount());
+
+            // 5회 실패 → 비밀번호 초기화
+            if (authAccount.getLoginFailCount() >= 5) {
+
+                String tempPassword = generateTempPassword();
+
+                authAccount.setPasswordHash(
+                        passwordEncoder.encode(tempPassword)
+                );
+
+                authAccount.setLoginFailCount(0);
+
+                authAccountRepository.save(authAccount);
+
+                emailService.sendPasswordResetMail(
+                        authAccount.getProviderUserId(),
+                        tempPassword
+                );
+
+                throw new IllegalArgumentException(
+                        "로그인 실패 5회로 비밀번호가 초기화되었습니다. 이메일을 확인해주세요."
+                );
+            }
+
+            authAccountRepository.save(authAccount);
+
+            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
         }
+
+        // 로그인 성공 → 실패 횟수 초기화
+        authAccount.setLoginFailCount(0);
+        authAccountRepository.save(authAccount);
 
         User user = authAccount.getUser();
 
         String token = jwtProvider.createToken(user.getId());
 
         return new LoginResponseDto(user.getId(), token);
+    }
+
+    private String generateTempPassword() {
+        return UUID.randomUUID().toString().substring(0, 10);
     }
 }
