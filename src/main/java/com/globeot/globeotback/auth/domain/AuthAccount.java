@@ -45,6 +45,8 @@ public class AuthAccount {
     @Column(name = "password_hash", length = 255)
     private String passwordHash;
 
+    @Getter
+    @Setter
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
 

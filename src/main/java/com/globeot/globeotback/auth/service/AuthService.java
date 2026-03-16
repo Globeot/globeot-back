@@ -260,6 +260,8 @@ public class AuthService {
 
         // 로그인 성공 → 실패 횟수 초기화
         authAccount.setLoginFailCount(0);
+        authAccount.setLastLoginAt(LocalDateTime.now());
+
         authAccountRepository.save(authAccount);
 
         User user = authAccount.getUser();
