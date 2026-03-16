@@ -151,6 +151,16 @@ public class AuthService {
     public SignupResponseDto signup(SignupRequestDto request) {
         try{
             System.out.println("Signup 시작: " + request.getEmail());
+
+            // 탈퇴 후 재가입 체크
+            User deletedUser = userRepository.findDeletedUserByEmail(request.getEmail());
+
+            if (deletedUser != null &&
+                    deletedUser.getDeletedAt().isAfter(LocalDateTime.now().minusDays(30))) {
+                throw new IllegalArgumentException("탈퇴 후 30일 동안 재가입할 수 없습니다.");
+            }
+
+            // 이메일 인증 확인
             EmailVerification verification =
                     emailVerificationRepository.findByEmail(request.getEmail())
                             .orElseThrow(() ->
@@ -162,10 +172,12 @@ public class AuthService {
 
             validateSchoolEmail(request.getEmail());
 
+            // 이미 가입된 계정 확인
             if (userRepository.existsByEmail(request.getEmail())) {
                 throw new IllegalArgumentException("이미 가입된 이메일입니다.");
             }
 
+            // 닉네임 중복 확인
             if (userRepository.existsByNickname(request.getNickname())) {
                 throw new IllegalArgumentException("이미 사용중인 닉네임입니다.");
             }
@@ -183,7 +195,7 @@ public class AuthService {
             AuthAccount authAccount = new AuthAccount(AuthProvider.LOCAL, request.getEmail(), passwordHash, user);
             user.addAuthAccount(authAccount);
 
-            // User 저장 (Cascade.ALL)
+            // User 저장
             userRepository.save(user);
 
             System.out.println("User: " + user.getEmail() + ", AuthAccounts size: " + user.getAuthAccounts().size());

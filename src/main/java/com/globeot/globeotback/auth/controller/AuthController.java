@@ -28,13 +28,6 @@ public class AuthController {
     ) {
         SignupResponseDto signupResponse = authService.signup(request);
 
-        User deletedUser = userRepository.findDeletedUserByEmail(request.getEmail());
-
-        if (deletedUser != null) {
-            if (deletedUser.getDeletedAt().isAfter(LocalDateTime.now().minusDays(30))) {
-                throw new IllegalArgumentException("탈퇴 후 30일 동안 재가입할 수 없습니다.");
-            }
-        }
         return ResponseEntity.ok(
                 Map.of(
                         "message", "회원가입이 완료되었습니다.",
