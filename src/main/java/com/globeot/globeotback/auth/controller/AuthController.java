@@ -2,10 +2,12 @@ package com.globeot.globeotback.auth.controller;
 
 import com.globeot.globeotback.auth.dto.*;
 import com.globeot.globeotback.auth.service.AuthService;
+import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
@@ -26,6 +28,13 @@ public class AuthController {
     ) {
         SignupResponseDto signupResponse = authService.signup(request);
 
+        User deletedUser = userRepository.findDeletedUserByEmail(request.getEmail());
+
+        if (deletedUser != null) {
+            if (deletedUser.getDeletedAt().isAfter(LocalDateTime.now().minusDays(30))) {
+                throw new IllegalArgumentException("탈퇴 후 30일 동안 재가입할 수 없습니다.");
+            }
+        }
         return ResponseEntity.ok(
                 Map.of(
                         "message", "회원가입이 완료되었습니다.",

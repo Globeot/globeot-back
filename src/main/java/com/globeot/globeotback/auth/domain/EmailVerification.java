@@ -2,6 +2,7 @@ package com.globeot.globeotback.auth.domain;
 
 import jakarta.persistence.*;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
@@ -17,11 +18,32 @@ public class EmailVerification {
     private String email;
 
     @Getter
+    @Setter
     @Column(nullable = false)
     private String otp;
 
+    @Getter
+    @Setter
     @Column(name = "expire_time", nullable = false)
     private LocalDateTime expireTime;
+
+    @Getter
+    @Setter
+    @Column(nullable = false)
+    private int verifyFailCount=0;
+
+    @Getter
+    @Setter
+    @Column(nullable = false)
+    private int sendCount=0;
+
+    @Getter
+    @Setter
+    private LocalDateTime lastSentAt;
+
+    @Getter
+    @Setter
+    private LocalDateTime blockedUntil;
 
     @Getter
     @Column(nullable = false)
