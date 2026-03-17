@@ -13,8 +13,8 @@ import java.time.LocalDateTime;
         name = "auth_accounts",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_provider_provider_user_id_deleted",
-                        columnNames = {"provider", "provider_user_id", "deleted_at"}
+                        name = "uk_provider_provider_user_id",
+                        columnNames = {"provider", "provider_user_id"}
                 ),
                 @UniqueConstraint(
                         name = "uk_user_provider",
