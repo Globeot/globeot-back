@@ -1,0 +1,41 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up SSH
+        run: |
+          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
+          chmod 600 key.pem
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+          
+          cd ~/globeot-back
+
+          git fetch origin
+          git reset --hard origin/main
+
+          # env 파일 생성
+          echo "${{ secrets.ENV_FILE }}" > .env
+
+          # 기존 프로세스 종료
+          pkill -f 'java -jar' || true
+
+          # 빌드
+          ./gradlew build
+
+          # 실행
+          nohup java -jar build/libs/*.jar --spring.profiles.active=prod > app.log 2>&1 &
+
+          EOF
