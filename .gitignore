@@ -39,3 +39,6 @@ out/
 ### ENV ###
 .env.properties
 .env.*
+
+### key파일
+*.pem
