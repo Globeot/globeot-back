@@ -54,6 +54,27 @@ public class AuthService {
         }
     }
 
+    private void validateUserForSignup(String email) {
+
+        User existingUser = userRepository.findByEmail(email).orElse(null);
+
+        if (existingUser != null) {
+
+            // 활성 유저
+            if (existingUser.getDeletedAt() == null) {
+                throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+            }
+
+            // 탈퇴 후 30일 이내
+            if (existingUser.getDeletedAt()
+                    .isAfter(LocalDateTime.now().minusDays(30))) {
+                throw new IllegalArgumentException("탈퇴 처리된 계정입니다. 30일 이후 재가입 가능합니다.");
+            }
+
+            // 👉 30일 지난 탈퇴 유저는 그냥 통과
+        }
+    }
+
     private String generateOtp() {
         int otp = (int) (Math.random() * 900000) + 100000;
         return String.valueOf(otp);
@@ -64,9 +85,7 @@ public class AuthService {
 
         validateSchoolEmail(email);
 
-        if (userRepository.existsByEmail(email)) {
-            throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-        }
+        validateUserForSignup(email);
 
         String otp = generateOtp();
 
@@ -149,16 +168,8 @@ public class AuthService {
 
     @Transactional
     public SignupResponseDto signup(SignupRequestDto request) {
-        try{
+        try {
             System.out.println("Signup 시작: " + request.getEmail());
-
-            // 탈퇴 후 재가입 체크
-            User deletedUser = userRepository.findDeletedUserByEmail(request.getEmail());
-
-            if (deletedUser != null &&
-                    deletedUser.getDeletedAt().isAfter(LocalDateTime.now().minusDays(30))) {
-                throw new IllegalArgumentException("탈퇴 후 30일 동안 재가입할 수 없습니다.");
-            }
 
             // 이메일 인증 확인
             EmailVerification verification =
@@ -172,10 +183,7 @@ public class AuthService {
 
             validateSchoolEmail(request.getEmail());
 
-            // 이미 가입된 계정 확인
-            if (userRepository.existsByEmail(request.getEmail())) {
-                throw new IllegalArgumentException("이미 가입된 이메일입니다.");
-            }
+            validateUserForSignup(request.getEmail());
 
             // 닉네임 중복 확인
             if (userRepository.existsByNickname(request.getNickname())) {
@@ -190,22 +198,19 @@ public class AuthService {
             );
             user.verifyEmail();
 
-            // AuthAccount 생성 & User에 추가
+            // AuthAccount 생성
             String passwordHash = passwordEncoder.encode(request.getPassword());
-            AuthAccount authAccount = new AuthAccount(AuthProvider.LOCAL, request.getEmail(), passwordHash, user);
+            AuthAccount authAccount =
+                    new AuthAccount(AuthProvider.LOCAL, request.getEmail(), passwordHash, user);
             user.addAuthAccount(authAccount);
 
-            // User 저장
+            // 저장
             userRepository.save(user);
-
-            System.out.println("User: " + user.getEmail() + ", AuthAccounts size: " + user.getAuthAccounts().size());
-            AuthAccount account = user.getAuthAccounts().get(0);
-            System.out.println("AuthAccount provider: " + account.getProvider() + ", providerUserId: " + account.getProviderUserId());
 
             // JWT 발급
             String token = jwtProvider.createToken(user.getId());
 
-            // OTP 정보 삭제
+            // OTP 삭제
             emailVerificationRepository.delete(verification);
 
             return new SignupResponseDto(
@@ -217,8 +222,8 @@ public class AuthService {
             );
 
         } catch (Exception e) {
-            e.printStackTrace(); // 서버 콘솔에 전체 오류 확인
-            throw e; // 다시 던져서 rollback 유지
+            e.printStackTrace();
+            throw e;
         }
     }
 
@@ -233,6 +238,16 @@ public class AuthService {
                         )
                         .orElseThrow(() ->
                                 new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
+
+        if (authAccount.getDeletedAt() != null) {
+
+            if (authAccount.getDeletedAt()
+                    .isAfter(LocalDateTime.now().minusDays(30))) {
+                throw new IllegalArgumentException("탈퇴한 계정입니다. 30일 이후 재가입 가능합니다.");
+            }
+
+            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        }
 
         if (!passwordEncoder.matches(
                 request.getPassword(),

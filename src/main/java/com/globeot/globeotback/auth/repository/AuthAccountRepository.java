@@ -12,4 +12,9 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
             AuthProvider provider,
             String providerUserId
     );
+
+    Optional<AuthAccount> findByProviderAndProviderUserIdAndDeletedAtIsNull(
+            AuthProvider provider,
+            String providerUserId
+    );
 }

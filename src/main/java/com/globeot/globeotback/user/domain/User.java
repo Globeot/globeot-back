@@ -4,6 +4,8 @@ import com.globeot.globeotback.auth.domain.AuthAccount;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
 import com.globeot.globeotback.user.enums.UserRole;
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -63,6 +65,8 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Getter
+    @Setter
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
