@@ -1,6 +1,6 @@
 spring:
   config:
-    import: optional:file:.env.properties
+    import: optional:file:/home/ec2-user/globeot-back/.env.properties
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}
     username: ${DB_USERNAME}
@@ -22,8 +22,8 @@ spring:
             enable: true
   jpa:
     hibernate:
-      ddl-auto:
-        update    database-platform: org.hibernate.dialect.MySQLDialect
+      ddl-auto: update
+      database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: true
 
   server:
