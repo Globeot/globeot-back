@@ -1,5 +1,6 @@
 package com.globeot.globeotback.auth.domain;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.globeot.globeotback.auth.enums.AuthProvider;
 import com.globeot.globeotback.user.domain.User;
 import jakarta.persistence.*;
@@ -31,6 +32,8 @@ public class AuthAccount {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
+
+    @JsonIgnore
     private User user;
 
     @Enumerated(EnumType.STRING)
@@ -64,8 +67,7 @@ public class AuthAccount {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    protected AuthAccount() {
-    }
+    protected AuthAccount() {}
 
     private AuthAccount(AuthProvider provider, String providerUserId, String passwordHash) {
         this.provider = provider;
@@ -82,8 +84,8 @@ public class AuthAccount {
 
     public static AuthAccount createLocalAccount(String email, String passwordHash) {
         AuthAccount account = new AuthAccount();
-        account.provider = AuthProvider.valueOf("LOCAL");             // 반드시 NON NULL
-        account.providerUserId = email;         // 일반적으로 이메일을 USER_ID로 사용
+        account.provider = AuthProvider.valueOf("LOCAL");
+        account.providerUserId = email;
         account.passwordHash = passwordHash;
         return account;
     }
@@ -132,39 +134,13 @@ public class AuthAccount {
         return this.provider == AuthProvider.GOOGLE;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public AuthProvider getProvider() {
-        return provider;
-    }
-
-    public String getProviderUserId() {
-        return providerUserId;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public LocalDateTime getLastLoginAt() {
-        return lastLoginAt;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public LocalDateTime getDeletedAt() {
-        return deletedAt;
-    }
+    public Long getId() { return id; }
+    public User getUser() { return user; }
+    public AuthProvider getProvider() { return provider; }
+    public String getProviderUserId() { return providerUserId; }
+    public String getPasswordHash() { return passwordHash; }
+    public LocalDateTime getLastLoginAt() { return lastLoginAt; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
 }

@@ -42,3 +42,6 @@ out/
 
 ### key파일
 *.pem
+
+### 로컬용 실행 파일
+application-local.yaml
