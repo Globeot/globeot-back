@@ -4,6 +4,11 @@ plugins {
     id 'io.spring.dependency-management' version '1.1.7'
 }
 
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+    targetCompatibility = JavaVersion.VERSION_17
+}
+
 group = 'com.globeot'
 version = '0.0.1-SNAPSHOT'
 description = 'globeot-back'
@@ -24,7 +29,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-mail'
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'com.mysql:mysql-connector-j:8.0.33'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.0'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     compileOnly 'org.projectlombok:lombok'

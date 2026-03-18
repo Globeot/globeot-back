@@ -1,5 +1,6 @@
 package com.globeot.globeotback.global.exception;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,8 +24,16 @@ public class GlobalExceptionHandler {
     // 서버 에러
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(
-            Exception e
+            Exception e,
+            HttpServletRequest request // ✅ 추가
     ) {
+
+        String uri = request.getRequestURI();
+
+        // 🔥🔥🔥 Swagger는 예외 처리하지 말고 그대로 던지기
+        if (uri.startsWith("/v3/api-docs") || uri.startsWith("/swagger-ui")) {
+            throw new RuntimeException(e);
+        }
 
         ErrorResponse response =
                 new ErrorResponse("서버 내부 오류가 발생했습니다.");
