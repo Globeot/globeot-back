@@ -20,22 +20,23 @@ jobs:
       - name: Deploy to EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
-          
+
           cd ~/globeot-back
 
+          # 최신 main 강제 업데이트
           git fetch origin
           git reset --hard origin/main
 
           # env 파일 생성
-          echo "${{ secrets.ENV_FILE }}" > .env
+          echo "${{ secrets.ENV_FILE }}" > .env.properties
 
-          # 기존 프로세스 종료
+          # 기존 Java 프로세스 종료
           pkill -f 'java -jar' || true
 
-          # 빌드
-          ./gradlew build
+          # Fat jar 빌드 (테스트 제외)
+          ./gradlew clean bootJar -x test
 
-          # 실행
+          # 실행 (spring.config.location 제거)
           nohup java -jar build/libs/*.jar --spring.profiles.active=prod > app.log 2>&1 &
 
           EOF
