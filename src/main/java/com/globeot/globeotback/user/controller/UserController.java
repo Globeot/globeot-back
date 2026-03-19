@@ -23,8 +23,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
-    public User me(@AuthenticationPrincipal JwtAuthentication authentication) {
-        Long userId = authentication.getUserId();
+    public User me(@AuthenticationPrincipal Long userId) {
         return userService.getUserById(userId);
     }
 
