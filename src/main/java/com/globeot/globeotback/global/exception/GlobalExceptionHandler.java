@@ -21,19 +21,33 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
 
+    // 비즈니스 로직 예외 (탈퇴 불가 등)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(
+            IllegalStateException e
+    ) {
+
+        ErrorResponse response = new ErrorResponse(e.getMessage());
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST) // 또는 409도 가능
+                .body(response);
+    }
+
     // 서버 에러
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(
             Exception e,
-            HttpServletRequest request // ✅ 추가
+            HttpServletRequest request
     ) {
 
         String uri = request.getRequestURI();
 
-        // 🔥🔥🔥 Swagger는 예외 처리하지 말고 그대로 던지기
         if (uri.startsWith("/v3/api-docs") || uri.startsWith("/swagger-ui")) {
             throw new RuntimeException(e);
         }
+
+        e.printStackTrace();
 
         ErrorResponse response =
                 new ErrorResponse("서버 내부 오류가 발생했습니다.");

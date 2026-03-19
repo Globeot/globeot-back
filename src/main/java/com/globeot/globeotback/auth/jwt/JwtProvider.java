@@ -4,6 +4,9 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -15,6 +18,7 @@ public class JwtProvider {
 
     private final SecretKey key;
     private final long expirationMs;
+    private static final Logger logger = LoggerFactory.getLogger(JwtProvider.class);
 
     public JwtProvider(@Value("${spring.jwt.secret}") String secret,
                        @Value("${spring.jwt.expiration-ms}") long expirationMs) {
@@ -35,6 +39,7 @@ public class JwtProvider {
                 .compact();
     }
 
+
     public Long getUserId(String token) {
         Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -42,7 +47,11 @@ public class JwtProvider {
                 .parseClaimsJws(token)
                 .getBody();
 
-        return claims.get("userId", Long.class);
+        Long userId = Long.parseLong(claims.getSubject());
+
+        logger.info("추출된 userId = {}", userId);
+
+        return userId;
     }
 
 }
