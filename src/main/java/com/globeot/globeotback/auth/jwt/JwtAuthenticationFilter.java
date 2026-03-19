@@ -24,6 +24,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             FilterChain filterChain
     ) throws ServletException, IOException {
 
+        logger.info("JWT 필터 실행됨");
+
         String header = request.getHeader("Authorization");
 
         if (header != null && header.startsWith("Bearer ")) {
@@ -41,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // JWT 검증 실패 시 SecurityContext 초기화
                 SecurityContextHolder.clearContext();
                 // 로그 남기기 (선택)
-                logger.warn("Invalid JWT token: {}");
+                logger.warn("Invalid JWT token", e);
             }
         }
 

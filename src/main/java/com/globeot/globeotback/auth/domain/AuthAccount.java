@@ -64,6 +64,7 @@ public class AuthAccount {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Setter
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 

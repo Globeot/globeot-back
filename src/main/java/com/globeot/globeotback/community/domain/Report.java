@@ -1,6 +1,7 @@
 package com.globeot.globeotback.community.domain;
 
 import com.globeot.globeotback.community.enums.Reason;
+import com.globeot.globeotback.community.enums.ReportStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -28,6 +29,9 @@ public class Report {
 
     @Enumerated(EnumType.STRING)
     private Reason reason;
+
+    @Enumerated(EnumType.STRING)
+    private ReportStatus status;
 
     private LocalDateTime createdAt;
 
