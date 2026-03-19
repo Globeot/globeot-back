@@ -1,7 +1,7 @@
 package com.globeot.globeotback.community.domain;
 
 import com.globeot.globeotback.community.enums.Region;
-import com.globeot.globeotback.community.enums.SaleStatus;
+import com.globeot.globeotback.community.enums.ArticleStatus;
 import com.globeot.globeotback.community.enums.Status;
 import com.globeot.globeotback.community.enums.Type;
 import jakarta.persistence.*;
@@ -44,7 +44,7 @@ public class Article {
     private String content;
 
     @Enumerated(EnumType.STRING)
-    private SaleStatus saleStatus;
+    private ArticleStatus articleStatus;
 
     private Integer viewCount;
 

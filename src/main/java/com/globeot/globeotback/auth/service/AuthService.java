@@ -230,23 +230,18 @@ public class AuthService {
     @Transactional(noRollbackFor = IllegalArgumentException.class)
     public LoginResponseDto login(LoginRequestDto request) {
 
-        AuthAccount authAccount =
-                authAccountRepository
-                        .findByProviderAndProviderUserId(
-                                AuthProvider.LOCAL,
-                                request.getEmail()
-                        )
-                        .orElseThrow(() ->
-                                new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
+        AuthAccount authAccount = authAccountRepository
+                .findByProviderAndProviderUserId(
+                        AuthProvider.LOCAL,
+                        request.getEmail()
+                )
+                .orElseThrow(() ->
+                        new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
 
-        if (authAccount.getDeletedAt() != null) {
+        User user = authAccount.getUser();
 
-            if (authAccount.getDeletedAt()
-                    .isAfter(LocalDateTime.now().minusDays(30))) {
-                throw new IllegalArgumentException("탈퇴한 계정입니다. 30일 이후 재가입 가능합니다.");
-            }
-
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+        if (user.getDeletedAt() != null || !user.isActive()) {
+            throw new IllegalArgumentException("탈퇴한 계정입니다. 30일 이후 재가입 가능합니다.");
         }
 
         if (!passwordEncoder.matches(
@@ -294,10 +289,11 @@ public class AuthService {
 
         authAccountRepository.save(authAccount);
 
-        User user = authAccount.getUser();
-
         String token = jwtProvider.createToken(user.getId());
 
+        if (user.isDeleted() || !user.isActive()) {
+            throw new IllegalArgumentException("탈퇴한 계정입니다.");
+        }
         return new LoginResponseDto(user.getId(), token);
     }
 
