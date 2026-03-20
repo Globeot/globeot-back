@@ -2,8 +2,8 @@ package com.globeot.globeotback.community.domain;
 
 import com.globeot.globeotback.community.enums.Region;
 import com.globeot.globeotback.community.enums.ArticleStatus;
-import com.globeot.globeotback.community.enums.Status;
 import com.globeot.globeotback.community.enums.Type;
+import com.globeot.globeotback.user.enums.ExchangeStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -30,7 +30,7 @@ public class Article {
     private com.globeot.globeotback.school.domain.School school;
 
     @Enumerated(EnumType.STRING)
-    private Status status;
+    private ExchangeStatus exchangeStatus;
 
     @Enumerated(EnumType.STRING)
     private Region region;

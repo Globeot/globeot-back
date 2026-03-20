@@ -25,6 +25,7 @@ public class UserService {
 
     }
 
+    @Transactional
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("사용자 없음"));
