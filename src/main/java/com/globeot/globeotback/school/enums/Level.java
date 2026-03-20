@@ -1,5 +1,5 @@
 package com.globeot.globeotback.school.enums;
 
-public enum TravelAccess {
+public enum Level {
     HIGH, MEDIUM, LOW
 }
