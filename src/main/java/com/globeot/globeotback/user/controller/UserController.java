@@ -2,6 +2,7 @@ package com.globeot.globeotback.user.controller;
 
 import com.globeot.globeotback.auth.jwt.JwtAuthentication;
 import com.globeot.globeotback.user.domain.User;
+import com.globeot.globeotback.user.dto.MyArticleDto;
 import com.globeot.globeotback.user.dto.UserProfileDto;
 import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
 import com.globeot.globeotback.user.repository.UserRepository;
@@ -11,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -58,5 +61,13 @@ public class UserController {
             throw new RuntimeException("인증 정보 없음");
         }
         return userService.updateUserProfile(userId, dto);
+    }
+
+    @GetMapping("/articles")
+    public List<MyArticleDto> getMyArticles(@AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            throw new RuntimeException("인증 정보 없음");
+        }
+        return userService.getMyArticles(userId);
     }
 }

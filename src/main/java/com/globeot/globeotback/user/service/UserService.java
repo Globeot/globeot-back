@@ -1,10 +1,12 @@
 package com.globeot.globeotback.user.service;
 import com.globeot.globeotback.community.enums.ArticleStatus;
 import com.globeot.globeotback.community.enums.ReportStatus;
+import com.globeot.globeotback.community.enums.Type;
 import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
 import com.globeot.globeotback.user.domain.User;
+import com.globeot.globeotback.user.dto.MyArticleDto;
 import com.globeot.globeotback.user.dto.UserProfileDto;
 import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
@@ -14,6 +16,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+
 @Service
 public class UserService {
 
@@ -97,6 +101,23 @@ public class UserService {
                 user.getEmail(),
                 user.getExchangeStatus()
         );
+    }
+
+    @Transactional
+    public List<MyArticleDto> getMyArticles(Long userId) {
+        List<Object[]> results = articleRepository.findMyArticlesWithCommentCount(userId);
+
+        return results.stream()
+                .map(row -> new MyArticleDto(
+                        (Long) row[0],                 // articleId
+                        (String) row[1],               // title
+                        (String) row[2],               // content
+                        (Type) row[3],               // type
+                        (ArticleStatus) row[4],        // articleStatus
+                        (java.time.LocalDateTime) row[5], // createdAt
+                        ((Long) row[6])                // commentCount
+                ))
+                .collect(Collectors.toList());
     }
 
 }
