@@ -5,6 +5,9 @@ import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
 import com.globeot.globeotback.user.domain.User;
+import com.globeot.globeotback.user.dto.UserProfileDto;
+import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
+import com.globeot.globeotback.user.enums.ExchangeStatus;
 import com.globeot.globeotback.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
@@ -58,6 +61,42 @@ public class UserService {
 
         userRepository.save(user);
 
+    }
+
+    @Transactional
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        return new UserProfileDto(
+                user.getId(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getExchangeStatus()
+        );
+    }
+
+    @Transactional
+    public UserProfileDto updateUserProfile(Long userId, UserProfileUpdateDto dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (dto.nickname() != null) {
+            user.setNickname(dto.nickname());
+        }
+
+        if (dto.exchangeStatus() != null) {
+            user.setExchangeStatus(ExchangeStatus.valueOf(dto.exchangeStatus()));
+        }
+
+        userRepository.save(user);
+
+        return new UserProfileDto(
+                user.getId(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getExchangeStatus()
+        );
     }
 
 }
