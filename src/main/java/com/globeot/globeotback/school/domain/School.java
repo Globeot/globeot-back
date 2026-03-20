@@ -1,6 +1,6 @@
 package com.globeot.globeotback.school.domain;
 
-import com.globeot.globeotback.school.enums.TravelAccess;
+import com.globeot.globeotback.school.enums.Level;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -31,13 +31,18 @@ public class School {
     private List<String> popularMajors;
 
     @Enumerated(EnumType.STRING)
-    private TravelAccess travelAccess;
+    private Level travelAccessLevel;
 
-    private Integer monthlyCost;
+    private String travelAccess;
 
-    private Double internationalStudentRatio;
+    @Enumerated(EnumType.STRING)
+    private Level monthlyCostLevel;
 
-    private Boolean buddyProgram;
+    private String monthlyCost;
+
+    private int internationalStudentRatio;
+
+    private String buddyProgram;
 
     private String officialSite;
 

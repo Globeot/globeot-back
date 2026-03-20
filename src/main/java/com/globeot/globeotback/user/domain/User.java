@@ -26,11 +26,13 @@ public class User {
     @Column(nullable = false, length = 255)
     private String email;
 
+    @Setter
     @Column(nullable = false, length = 30)
     private String nickname;
 
     private LocalDateTime nicknameUpdatedAt;
 
+    @Setter
     @Enumerated(EnumType.STRING)
     @Column(name = "exchange_status", nullable = false, length = 30)
     private ExchangeStatus exchangeStatus;

@@ -1,10 +1,9 @@
-package com.globeot.globeotback.community.domain;
+package com.globeot.globeotback.school.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 import com.globeot.globeotback.user.domain.User;
-import com.globeot.globeotback.school.domain.School;
 
 @Entity
 @Table(name = "favorites")

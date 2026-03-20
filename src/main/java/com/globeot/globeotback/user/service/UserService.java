@@ -1,27 +1,40 @@
 package com.globeot.globeotback.user.service;
 import com.globeot.globeotback.community.enums.ArticleStatus;
 import com.globeot.globeotback.community.enums.ReportStatus;
+import com.globeot.globeotback.community.enums.Type;
 import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
+import com.globeot.globeotback.community.repository.ScrapRepository;
+import com.globeot.globeotback.school.repository.FavoriteRepository;
 import com.globeot.globeotback.user.domain.User;
+import com.globeot.globeotback.user.dto.*;
+import com.globeot.globeotback.user.enums.ExchangeStatus;
 import com.globeot.globeotback.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
+
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final ArticleRepository articleRepository;
     private final ReportRepository reportRepository;
+    private final CommentRepository commentRepository;
+    private final ScrapRepository scrapRepository;
+    private final FavoriteRepository favoriteRepository;
 
-    public UserService(UserRepository userRepository, ArticleRepository articleRepository,ReportRepository reportRepository) {
+    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository, FavoriteRepository favoriteRepository) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
+        this.commentRepository = commentRepository;
+        this.scrapRepository = scrapRepository;
+        this.favoriteRepository = favoriteRepository;
 
     }
 
@@ -58,6 +71,114 @@ public class UserService {
 
         userRepository.save(user);
 
+    }
+
+    @Transactional
+    public UserProfileDto getUserProfile(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        return new UserProfileDto(
+                user.getId(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getExchangeStatus()
+        );
+    }
+
+    @Transactional
+    public UserProfileDto updateUserProfile(Long userId, UserProfileUpdateDto dto) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (dto.nickname() != null) {
+            user.setNickname(dto.nickname());
+        }
+
+        if (dto.exchangeStatus() != null) {
+            user.setExchangeStatus(ExchangeStatus.valueOf(dto.exchangeStatus()));
+        }
+
+        userRepository.save(user);
+
+        return new UserProfileDto(
+                user.getId(),
+                user.getNickname(),
+                user.getEmail(),
+                user.getExchangeStatus()
+        );
+    }
+
+    @Transactional
+    public List<MyArticleDto> getMyArticles(Long userId) {
+        List<Object[]> results = articleRepository.findMyArticlesWithCommentCount(userId);
+
+        return results.stream()
+                .map(row -> new MyArticleDto(
+                        (Long) row[0],                 // articleId
+                        (String) row[1],               // title
+                        (String) row[2],               // content
+                        (Type) row[3],               // type
+                        (ArticleStatus) row[4],        // articleStatus
+                        (java.time.LocalDateTime) row[5], // createdAt
+                        ((Long) row[6])                // commentCount
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<MyCommentDto> getMyComments(Long userId) {
+        List<Object[]> results = commentRepository.findMyCommentsWithArticleTitle(userId);
+
+        return results.stream()
+                .map(row -> new MyCommentDto(
+                        (Long) row[0],         // articleId
+                        (String) row[1],       // title
+                        (String) row[2],       // content
+                        (java.time.LocalDateTime) row[3] // createdAt
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<MyScrapDto> getMyScraps(Long userId) {
+        List<Object[]> results = scrapRepository.findMyScrapsWithArticle(userId);
+
+        return results.stream()
+                .map(row -> {
+                    Long articleId = (Long) row[1];
+                    Long commentCount = commentRepository.countByArticle_Id(articleId); // 댓글 수 조회
+                    return new MyScrapDto(
+                            (Long) row[0],               // scrapId
+                            articleId,                   // articleId
+                            (String) row[2],             // title
+                            (String) row[3],             // content
+                            (com.globeot.globeotback.community.enums.Type) row[4], // type
+                            (com.globeot.globeotback.community.enums.ArticleStatus) row[5], // articleStatus
+                            (java.time.LocalDateTime) row[6], // createdAt
+                            commentCount                  // commentCount
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<MyFavoriteDto> getMyFavoriteSchools(Long userId) {
+        List<Object[]> results = favoriteRepository.findMyFavoriteSchools(userId);
+
+        return results.stream()
+                .map(row -> new MyFavoriteDto(
+                        (Long) row[0],                  // favoriteId
+                        (Long) row[1],                  // schoolId
+                        (String) row[2],                // name
+                        (String) row[3],                // city
+                        (String) row[4],                // country
+                        (Double) row[5],                // avgScore
+                        (com.globeot.globeotback.school.enums.Level) row[6], // travelAccessLevel
+                        (String) row[7],                // monthlyCost
+                        (String) row[8]                 // officialSite
+                ))
+                .collect(Collectors.toList());
     }
 
 }
