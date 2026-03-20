@@ -84,4 +84,12 @@ public class UserController {
         }
         return userService.getMyScraps(userId);
     }
+
+    @GetMapping("/favorites")
+    public List<MyFavoriteDto> getMyFavoriteSchools(@AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            throw new RuntimeException("인증 정보 없음");
+        }
+        return userService.getMyFavoriteSchools(userId);
+    }
 }

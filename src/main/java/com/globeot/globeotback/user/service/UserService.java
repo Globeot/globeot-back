@@ -6,6 +6,7 @@ import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
 import com.globeot.globeotback.community.repository.ScrapRepository;
+import com.globeot.globeotback.school.repository.FavoriteRepository;
 import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.dto.*;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
@@ -25,13 +26,15 @@ public class UserService {
     private final ReportRepository reportRepository;
     private final CommentRepository commentRepository;
     private final ScrapRepository scrapRepository;
+    private final FavoriteRepository favoriteRepository;
 
-    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository) {
+    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository, FavoriteRepository favoriteRepository) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
         this.commentRepository = commentRepository;
         this.scrapRepository = scrapRepository;
+        this.favoriteRepository = favoriteRepository;
 
     }
 
@@ -156,6 +159,25 @@ public class UserService {
                             commentCount                  // commentCount
                     );
                 })
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<MyFavoriteDto> getMyFavoriteSchools(Long userId) {
+        List<Object[]> results = favoriteRepository.findMyFavoriteSchools(userId);
+
+        return results.stream()
+                .map(row -> new MyFavoriteDto(
+                        (Long) row[0],                  // favoriteId
+                        (Long) row[1],                  // schoolId
+                        (String) row[2],                // name
+                        (String) row[3],                // city
+                        (String) row[4],                // country
+                        (Double) row[5],                // avgScore
+                        (com.globeot.globeotback.school.enums.Level) row[6], // travelAccessLevel
+                        (String) row[7],                // monthlyCost
+                        (String) row[8]                 // officialSite
+                ))
                 .collect(Collectors.toList());
     }
 
