@@ -7,6 +7,7 @@ import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
 import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.dto.MyArticleDto;
+import com.globeot.globeotback.user.dto.MyCommentDto;
 import com.globeot.globeotback.user.dto.UserProfileDto;
 import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
@@ -24,11 +25,13 @@ public class UserService {
     private final UserRepository userRepository;
     private final ArticleRepository articleRepository;
     private final ReportRepository reportRepository;
+    private final CommentRepository commentRepository;
 
-    public UserService(UserRepository userRepository, ArticleRepository articleRepository,ReportRepository reportRepository) {
+    public UserService(UserRepository userRepository, ArticleRepository articleRepository,ReportRepository reportRepository, CommentRepository commentRepository) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
+        this.commentRepository = commentRepository;
 
     }
 
@@ -116,6 +119,20 @@ public class UserService {
                         (ArticleStatus) row[4],        // articleStatus
                         (java.time.LocalDateTime) row[5], // createdAt
                         ((Long) row[6])                // commentCount
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<MyCommentDto> getMyComments(Long userId) {
+        List<Object[]> results = commentRepository.findMyCommentsWithArticleTitle(userId);
+
+        return results.stream()
+                .map(row -> new MyCommentDto(
+                        (Long) row[0],         // articleId
+                        (String) row[1],       // title
+                        (String) row[2],       // content
+                        (java.time.LocalDateTime) row[3] // createdAt
                 ))
                 .collect(Collectors.toList());
     }
