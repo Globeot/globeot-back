@@ -19,4 +19,5 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         ORDER BY c.createdAt DESC
         """)
     List<Object[]> findMyCommentsWithArticleTitle(@Param("userId") Long userId);
+    Long countByArticle_Id(Long articleId);
 }

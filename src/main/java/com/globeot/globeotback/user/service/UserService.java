@@ -5,11 +5,9 @@ import com.globeot.globeotback.community.enums.Type;
 import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
+import com.globeot.globeotback.community.repository.ScrapRepository;
 import com.globeot.globeotback.user.domain.User;
-import com.globeot.globeotback.user.dto.MyArticleDto;
-import com.globeot.globeotback.user.dto.MyCommentDto;
-import com.globeot.globeotback.user.dto.UserProfileDto;
-import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
+import com.globeot.globeotback.user.dto.*;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
 import com.globeot.globeotback.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
@@ -26,12 +24,14 @@ public class UserService {
     private final ArticleRepository articleRepository;
     private final ReportRepository reportRepository;
     private final CommentRepository commentRepository;
+    private final ScrapRepository scrapRepository;
 
-    public UserService(UserRepository userRepository, ArticleRepository articleRepository,ReportRepository reportRepository, CommentRepository commentRepository) {
+    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
         this.commentRepository = commentRepository;
+        this.scrapRepository = scrapRepository;
 
     }
 
@@ -134,6 +134,28 @@ public class UserService {
                         (String) row[2],       // content
                         (java.time.LocalDateTime) row[3] // createdAt
                 ))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<MyScrapDto> getMyScraps(Long userId) {
+        List<Object[]> results = scrapRepository.findMyScrapsWithArticle(userId);
+
+        return results.stream()
+                .map(row -> {
+                    Long articleId = (Long) row[1];
+                    Long commentCount = commentRepository.countByArticle_Id(articleId); // 댓글 수 조회
+                    return new MyScrapDto(
+                            (Long) row[0],               // scrapId
+                            articleId,                   // articleId
+                            (String) row[2],             // title
+                            (String) row[3],             // content
+                            (com.globeot.globeotback.community.enums.Type) row[4], // type
+                            (com.globeot.globeotback.community.enums.ArticleStatus) row[5], // articleStatus
+                            (java.time.LocalDateTime) row[6], // createdAt
+                            commentCount                  // commentCount
+                    );
+                })
                 .collect(Collectors.toList());
     }
 

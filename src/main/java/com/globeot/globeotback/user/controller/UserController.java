@@ -2,10 +2,7 @@ package com.globeot.globeotback.user.controller;
 
 import com.globeot.globeotback.auth.jwt.JwtAuthentication;
 import com.globeot.globeotback.user.domain.User;
-import com.globeot.globeotback.user.dto.MyArticleDto;
-import com.globeot.globeotback.user.dto.MyCommentDto;
-import com.globeot.globeotback.user.dto.UserProfileDto;
-import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
+import com.globeot.globeotback.user.dto.*;
 import com.globeot.globeotback.user.repository.UserRepository;
 
 import com.globeot.globeotback.user.service.UserService;
@@ -78,5 +75,13 @@ public class UserController {
             throw new RuntimeException("인증 정보 없음");
         }
         return userService.getMyComments(userId);
+    }
+
+    @GetMapping("/scraps")
+    public List<MyScrapDto> getMyScraps(@AuthenticationPrincipal Long userId) {
+        if (userId == null) {
+            throw new RuntimeException("인증 정보 없음");
+        }
+        return userService.getMyScraps(userId);
     }
 }
