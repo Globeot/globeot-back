@@ -11,4 +11,6 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     boolean existsByUserId(Long userId);
 
     List<Application> findByStatusOrderByConvertedScoreDesc(Status status);
+
+    void deleteByUser_Id(Long userId);
 }

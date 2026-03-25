@@ -1,4 +1,5 @@
 package com.globeot.globeotback.user.service;
+import com.globeot.globeotback.application.repository.ApplicationRepository;
 import com.globeot.globeotback.community.enums.ArticleStatus;
 import com.globeot.globeotback.community.enums.ReportStatus;
 import com.globeot.globeotback.community.enums.Type;
@@ -27,15 +28,16 @@ public class UserService {
     private final CommentRepository commentRepository;
     private final ScrapRepository scrapRepository;
     private final FavoriteRepository favoriteRepository;
+    private final ApplicationRepository applicationRepository;
 
-    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository, FavoriteRepository favoriteRepository) {
+    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository, FavoriteRepository favoriteRepository, ApplicationRepository applicationRepository ) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
         this.commentRepository = commentRepository;
         this.scrapRepository = scrapRepository;
         this.favoriteRepository = favoriteRepository;
-
+        this.applicationRepository = applicationRepository;
     }
 
     @Transactional
@@ -65,6 +67,8 @@ public class UserService {
                     "신고 처리 중인 게시글이 있어 탈퇴할 수 없습니다. 신고 내역 처리를 기다려주세요."
             );
         }
+        applicationRepository.deleteByUser_Id(userId);
+
         LocalDateTime now = LocalDateTime.now();
         user.softDelete();
         user.getAuthAccounts().forEach(auth -> auth.setDeletedAt(now));
