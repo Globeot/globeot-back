@@ -23,7 +23,7 @@ public class ApplicationSubmitDto {
         @NotNull(message = "priority는 필수입니다.")
         private Integer priority;
 
-        @NotNull(message = "school_id는 필수입니다.")
-        private Long school_id;
+        @NotNull(message = "school_name는 필수입니다.")
+        private String schoolName;
     }
 }

@@ -1,9 +1,11 @@
 package com.globeot.globeotback.application.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globeot.globeotback.application.domain.Application;
 import com.globeot.globeotback.application.dto.ApplicationSubmitDto;
+import com.globeot.globeotback.application.dto.MyRankDto;
 import com.globeot.globeotback.application.enums.Status;
 import com.globeot.globeotback.application.repository.ApplicationRepository;
 import com.globeot.globeotback.school.repository.SchoolRepository;
@@ -14,8 +16,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -25,9 +32,9 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final SchoolRepository schoolRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper(); // ObjectMapper 한 번만 생성
 
     private void validateSchools(List<ApplicationSubmitDto.SchoolRequest> schools) {
-
         if (schools == null || schools.isEmpty()) {
             throw new GlobalExceptionHandler.BadRequestException("학교 최소 1개 선택은 필수입니다.");
         }
@@ -37,26 +44,6 @@ public class ApplicationService {
 
         if (!hasPriority1) {
             throw new GlobalExceptionHandler.BadRequestException("1순위 학교 선택은 필수입니다.");
-        }
-    }
-
-    private void validateSchoolIds(List<ApplicationSubmitDto.SchoolRequest> schools) {
-
-        List<Long> schoolIds = schools.stream()
-                .map(ApplicationSubmitDto.SchoolRequest::getSchool_id)
-                .toList();
-
-        List<Long> existingIds = schoolRepository.findAllById(schoolIds)
-                .stream()
-                .map(s -> s.getId())
-                .toList();
-
-        List<Long> invalidIds = schoolIds.stream()
-                .filter(id -> !existingIds.contains(id))
-                .toList();
-
-        if (!invalidIds.isEmpty()) {
-            throw new GlobalExceptionHandler.BadRequestException("존재하지 않는 학교 ID 입니다.");
         }
     }
 
@@ -71,12 +58,20 @@ public class ApplicationService {
         }
 
         validateSchools(request.getSchools());
-        validateSchoolIds(request.getSchools());
 
         String imageUrl = s3Service.upload(image);
 
-        ObjectMapper objectMapper = new ObjectMapper();
-        String schoolsJson = objectMapper.writeValueAsString(request.getSchools());
+        // schools JSON 변환
+        List<Map<String, Object>> schoolsJsonList = request.getSchools().stream()
+                .map(s -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("school_name", s.getSchoolName()); // 이름은 항상 넣음
+                    map.put("priority", s.getPriority());
+                    return map;
+                })
+                .collect(Collectors.toList());
+
+        String schoolsJson = objectMapper.writeValueAsString(schoolsJsonList);
 
         Application application = Application.builder()
                 .user(user)
@@ -90,5 +85,43 @@ public class ApplicationService {
                 .build();
 
         applicationRepository.save(application);
+    }
+
+    public MyRankDto getMyRanking(Long userId) throws Exception {
+        List<Application> allApplications = applicationRepository.findAllByOrderByConvertedScoreDesc();
+
+        int totalApplicants = allApplications.size();
+
+        Application myApplication = allApplications.stream()
+                .filter(app -> app.getUser().getId().equals(userId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("신청 정보 없음"));
+
+        int myRank = allApplications.indexOf(myApplication) + 1;
+
+        // schools JSON 문자열 파싱
+        List<Map<String, Object>> schoolsList = objectMapper.readValue(
+                myApplication.getSchools(),
+                new TypeReference<>() {}
+        );
+
+        List<MyRankDto.SchoolRanking> schoolRankings = schoolsList.stream()
+                .map(s -> {
+                    Integer priority = (Integer) s.get("priority");
+                    Long schoolId = s.get("school_id") != null ? Long.valueOf((Integer)s.get("school_id")) : null;
+                    String schoolName = schoolId != null
+                            ? schoolRepository.findById(schoolId).map(school -> school.getName()).orElse("Unknown")
+                            : (String) s.get("school_name");
+                    return new MyRankDto.SchoolRanking(schoolName, priority);
+                })
+                .sorted(Comparator.comparingInt(MyRankDto.SchoolRanking::getPriority).reversed())
+                .collect(Collectors.toList());
+
+        return new MyRankDto(
+                myRank,
+                totalApplicants,
+                myApplication.getConvertedScore(),
+                schoolRankings
+        );
     }
 }

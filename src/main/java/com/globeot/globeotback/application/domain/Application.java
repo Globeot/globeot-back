@@ -29,7 +29,7 @@ public class Application {
     private String semester;
 
     @Column(columnDefinition = "JSON")
-    private String schools; // [{"priority":1,"school_id":101}, ...]
+    private String schools; // [{"priority":1,"school_name":ㅇㅇ대학교}, ...]
 
     @Enumerated(EnumType.STRING)
     private Status status;
