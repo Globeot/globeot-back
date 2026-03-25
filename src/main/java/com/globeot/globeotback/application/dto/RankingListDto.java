@@ -14,6 +14,7 @@ public class RankingListDto {
     private String testType;
     private String semester;
     private List<SchoolInfo> schools;
+    private boolean isMine;
 
     @Getter
     @AllArgsConstructor

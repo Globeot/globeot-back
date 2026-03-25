@@ -125,7 +125,7 @@ public class ApplicationService {
         );
     }
 
-    public List<RankingListDto> getRankingList(String schoolName, String semester) throws Exception {
+    public List<RankingListDto> getRankingList(String schoolName, String semester, Long userId) throws Exception {
 
         ObjectMapper objectMapper = new ObjectMapper();
 
@@ -154,12 +154,14 @@ public class ApplicationService {
                             ))
                             .toList();
 
+            boolean isMine = app.getUser().getId().equals(userId);
             RankingListDto dto = new RankingListDto(
                     rank,
                     app.getConvertedScore(),
                     app.getEnglishTestType().name(),
                     app.getSemester(),
-                    schoolInfos
+                    schoolInfos,
+                    isMine
             );
 
             // 필터링 로직 추가

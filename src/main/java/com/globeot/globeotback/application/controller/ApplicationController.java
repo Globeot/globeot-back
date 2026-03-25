@@ -54,11 +54,12 @@ public class ApplicationController {
     }
 
     @GetMapping("/rankings")
-    public List<RankingListDto> getRankingList(
-            @RequestParam(required = false) String schoolName,
-            @RequestParam(required = false) String semester
-    ) throws Exception {
-
-        return applicationService.getRankingList(schoolName, semester);
+    public List<RankingListDto> getRankingList(@RequestParam(required = false) String schoolName,
+                                               @RequestParam(required = false) String semester,
+                                               @AuthenticationPrincipal Long userId) throws Exception {
+        if (userId == null) {
+            throw new RuntimeException("<UNK> <UNK> <UNK>");
+        }
+        return applicationService.getRankingList(schoolName, semester, userId);
     }
 }
