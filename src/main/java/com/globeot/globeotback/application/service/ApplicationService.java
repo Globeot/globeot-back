@@ -132,21 +132,9 @@ public class ApplicationService {
         List<Application> applications =
                 applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
 
-        List<RankingListDto> result = new ArrayList<>();
+        List<RankingListDto> tempList = new ArrayList<>();
 
-        int rank = 0;
-        Double prevScore = null;
-
-        for (int i = 0; i < applications.size(); i++) {
-
-            Application app = applications.get(i);
-            Double currentScore = app.getConvertedScore();
-
-            // ⭐ 동순위 처리 핵심
-            if (prevScore == null || !currentScore.equals(prevScore)) {
-                rank = i + 1;
-            }
-            prevScore = currentScore;
+        for (Application app : applications) {
 
             List<Map<String, Object>> schools =
                     objectMapper.readValue(app.getSchools(), new TypeReference<>() {});
@@ -164,38 +152,59 @@ public class ApplicationService {
 
             boolean isMine = app.getUser().getId().equals(userId);
 
-            RankingListDto dto = new RankingListDto(
-                    rank,
+            tempList.add(new RankingListDto(
+                    0, // rank는 나중에 넣음
                     app.getConvertedScore(),
                     app.getEnglishTestType().name(),
                     app.getSemester(),
                     schoolInfos,
                     isMine
-            );
+            ));
+        }
 
-            // 필터링 로직
-            boolean matchSchool = true;
-            boolean matchSemester = true;
+        List<RankingListDto> filtered = tempList.stream()
+                .filter(dto -> {
+                    boolean matchSchool = true;
+                    boolean matchSemester = true;
 
-            if (schoolName != null && !schoolName.trim().isEmpty()) {
-                matchSchool = dto.getSchools().stream()
-                        .anyMatch(s -> {
-                            if (s.getSchoolName() == null) return false;
-                            return s.getSchoolName()
-                                    .toLowerCase()
-                                    .trim()
-                                    .contains(schoolName.toLowerCase().trim());
-                        });
+                    if (schoolName != null && !schoolName.trim().isEmpty()) {
+                        matchSchool = dto.getSchools().stream()
+                                .anyMatch(s -> s.getSchoolName() != null &&
+                                        s.getSchoolName().toLowerCase().contains(schoolName.toLowerCase().trim()));
+                    }
+
+                    if (semester != null && !semester.trim().isEmpty()) {
+                        matchSemester = dto.getSemester() != null &&
+                                dto.getSemester().equals(semester.trim());
+                    }
+
+                    return matchSchool && matchSemester;
+                })
+                .toList();
+
+        List<RankingListDto> result = new ArrayList<>();
+
+        int rank = 0;
+        Double prevScore = null;
+
+        for (int i = 0; i < filtered.size(); i++) {
+
+            RankingListDto dto = filtered.get(i);
+            Double currentScore = dto.getScore();
+
+            if (prevScore == null || !Objects.equals(prevScore, currentScore)) {
+                rank = i + 1;
             }
+            prevScore = currentScore;
 
-            if (semester != null && !semester.trim().isEmpty()) {
-                matchSemester = dto.getSemester() != null &&
-                        dto.getSemester().equals(semester.trim());
-            }
-
-            if (matchSchool && matchSemester) {
-                result.add(dto);
-            }
+            result.add(new RankingListDto(
+                    rank,
+                    dto.getScore(),
+                    dto.getTestType(),
+                    dto.getSemester(),
+                    dto.getSchools(),
+                    dto.isMine()
+            ));
         }
 
         return result;
