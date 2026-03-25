@@ -134,14 +134,22 @@ public class ApplicationService {
 
         List<RankingListDto> result = new ArrayList<>();
 
+        int rank = 0;
+        Double prevScore = null;
+
         for (int i = 0; i < applications.size(); i++) {
 
             Application app = applications.get(i);
-            int rank = i + 1;
+            Double currentScore = app.getConvertedScore();
+
+            // ⭐ 동순위 처리 핵심
+            if (prevScore == null || !currentScore.equals(prevScore)) {
+                rank = i + 1;
+            }
+            prevScore = currentScore;
 
             List<Map<String, Object>> schools =
-                    objectMapper.readValue(app.getSchools(), new TypeReference<>() {
-                    });
+                    objectMapper.readValue(app.getSchools(), new TypeReference<>() {});
 
             List<RankingListDto.SchoolInfo> schoolInfos =
                     schools.stream()
@@ -155,6 +163,7 @@ public class ApplicationService {
                             .toList();
 
             boolean isMine = app.getUser().getId().equals(userId);
+
             RankingListDto dto = new RankingListDto(
                     rank,
                     app.getConvertedScore(),
@@ -164,16 +173,14 @@ public class ApplicationService {
                     isMine
             );
 
-            // 필터링 로직 추가
+            // 필터링 로직
             boolean matchSchool = true;
             boolean matchSemester = true;
 
-            // 학교명 필터
             if (schoolName != null && !schoolName.trim().isEmpty()) {
                 matchSchool = dto.getSchools().stream()
                         .anyMatch(s -> {
                             if (s.getSchoolName() == null) return false;
-
                             return s.getSchoolName()
                                     .toLowerCase()
                                     .trim()
@@ -181,13 +188,11 @@ public class ApplicationService {
                         });
             }
 
-            // 학기 필터
             if (semester != null && !semester.trim().isEmpty()) {
                 matchSemester = dto.getSemester() != null &&
                         dto.getSemester().equals(semester.trim());
             }
 
-            // 둘 다 만족해야 추가
             if (matchSchool && matchSemester) {
                 result.add(dto);
             }
