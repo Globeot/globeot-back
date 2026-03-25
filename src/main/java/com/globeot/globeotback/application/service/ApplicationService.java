@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.globeot.globeotback.application.domain.Application;
 import com.globeot.globeotback.application.dto.ApplicationSubmitDto;
 import com.globeot.globeotback.application.dto.MyRankDto;
+import com.globeot.globeotback.application.dto.RankingListDto;
 import com.globeot.globeotback.application.enums.Status;
 import com.globeot.globeotback.application.repository.ApplicationRepository;
 import com.globeot.globeotback.school.repository.SchoolRepository;
@@ -18,10 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,6 +63,7 @@ public class ApplicationService {
         List<Map<String, Object>> schoolsJsonList = request.getSchools().stream()
                 .map(s -> {
                     Map<String, Object> map = new HashMap<>();
+                    map.put("school_id", s.getSchoolId());
                     map.put("school_name", s.getSchoolName()); // 이름은 항상 넣음
                     map.put("priority", s.getPriority());
                     return map;
@@ -75,6 +74,7 @@ public class ApplicationService {
 
         Application application = Application.builder()
                 .user(user)
+                .englishTestType(request.getTestType())
                 .convertedScore(request.getConvertedScore())
                 .certificateImageUrl(imageUrl)
                 .semester(request.getSemester())
@@ -102,17 +102,18 @@ public class ApplicationService {
         // schools JSON 문자열 파싱
         List<Map<String, Object>> schoolsList = objectMapper.readValue(
                 myApplication.getSchools(),
-                new TypeReference<>() {}
+                new TypeReference<>() {
+                }
         );
 
         List<MyRankDto.SchoolRanking> schoolRankings = schoolsList.stream()
                 .map(s -> {
                     Integer priority = (Integer) s.get("priority");
-                    Long schoolId = s.get("school_id") != null ? Long.valueOf((Integer)s.get("school_id")) : null;
+                    Long schoolId = s.get("school_id") != null ? Long.valueOf((Integer) s.get("school_id")) : null;
                     String schoolName = schoolId != null
                             ? schoolRepository.findById(schoolId).map(school -> school.getName()).orElse("Unknown")
                             : (String) s.get("school_name");
-                    return new MyRankDto.SchoolRanking(schoolName, priority);
+                    return new MyRankDto.SchoolRanking(Math.toIntExact(schoolId), schoolName, priority);
                 })
                 .sorted(Comparator.comparingInt(MyRankDto.SchoolRanking::getPriority).reversed())
                 .collect(Collectors.toList());
@@ -123,5 +124,74 @@ public class ApplicationService {
                 myApplication.getConvertedScore(),
                 schoolRankings
         );
+    }
+
+    public List<RankingListDto> getRankingList(String schoolName, String semester) throws Exception {
+
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        List<Application> applications =
+                applicationRepository.findAllByOrderByConvertedScoreDesc();
+
+        List<RankingListDto> result = new ArrayList<>();
+
+        for (int i = 0; i < applications.size(); i++) {
+
+            Application app = applications.get(i);
+            int rank = i + 1;
+
+            List<Map<String, Object>> schools =
+                    objectMapper.readValue(app.getSchools(), new TypeReference<>() {
+                    });
+
+            List<RankingListDto.SchoolInfo> schoolInfos =
+                    schools.stream()
+                            .map(s -> new RankingListDto.SchoolInfo(
+                                    (String) s.get("school_name"),
+                                    s.get("school_id") != null
+                                            ? Long.valueOf(s.get("school_id").toString())
+                                            : null,
+                                    (Integer) s.get("priority")
+                            ))
+                            .toList();
+
+            RankingListDto dto = new RankingListDto(
+                    rank,
+                    app.getConvertedScore(),
+                    app.getEnglishTestType().name(),
+                    app.getSemester(),
+                    schoolInfos
+            );
+
+            // 필터링 로직 추가
+            boolean matchSchool = true;
+            boolean matchSemester = true;
+
+            // 학교명 필터
+            if (schoolName != null && !schoolName.trim().isEmpty()) {
+                matchSchool = dto.getSchools().stream()
+                        .anyMatch(s -> {
+                            if (s.getSchoolName() == null) return false;
+
+                            return s.getSchoolName()
+                                    .toLowerCase()
+                                    .trim()
+                                    .contains(schoolName.toLowerCase().trim());
+                        });
+            }
+
+            // 학기 필터
+            if (semester != null && !semester.trim().isEmpty()) {
+                matchSemester = dto.getSemester() != null &&
+                        dto.getSemester().equals(semester.trim());
+            }
+
+            // 둘 다 만족해야 추가
+            if (matchSchool && matchSemester) {
+                result.add(dto);
+            }
+        }
+
+        return result;
     }
 }

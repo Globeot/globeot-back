@@ -1,5 +1,6 @@
 package com.globeot.globeotback.application.domain;
 
+import com.globeot.globeotback.application.enums.EnglishTestType;
 import com.globeot.globeotback.application.enums.Status;
 import jakarta.persistence.*;
 import lombok.*;
@@ -22,6 +23,9 @@ public class Application {
     @JoinColumn(name = "user_id")
     private com.globeot.globeotback.user.domain.User user;
 
+    @Enumerated(EnumType.STRING)
+    private EnglishTestType englishTestType;
+
     private Double convertedScore;
 
     private String certificateImageUrl;
@@ -29,7 +33,7 @@ public class Application {
     private String semester;
 
     @Column(columnDefinition = "JSON")
-    private String schools; // [{"priority":1,"school_name":ㅇㅇ대학교}, ...]
+    private String schools; // [{"priority":1, "school_id": 1, "school_name":ㅇㅇ대학교}, ...]
 
     @Enumerated(EnumType.STRING)
     private Status status;

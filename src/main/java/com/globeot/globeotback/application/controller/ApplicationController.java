@@ -3,6 +3,7 @@ package com.globeot.globeotback.application.controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.globeot.globeotback.application.dto.ApplicationSubmitDto;
 import com.globeot.globeotback.application.dto.MyRankDto;
+import com.globeot.globeotback.application.dto.RankingListDto;
 import com.globeot.globeotback.application.service.ApplicationService;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -13,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -48,5 +51,14 @@ public class ApplicationController {
             throw new RuntimeException("인증 정보 없음");
         }
         return applicationService.getMyRanking(userId);
+    }
+
+    @GetMapping("/rankings")
+    public List<RankingListDto> getRankingList(
+            @RequestParam(required = false) String schoolName,
+            @RequestParam(required = false) String semester
+    ) throws Exception {
+
+        return applicationService.getRankingList(schoolName, semester);
     }
 }

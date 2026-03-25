@@ -15,6 +15,7 @@ public class MyRankDto {
     @Data
     @AllArgsConstructor
     public static class SchoolRanking {
+        private int schoolId;
         private String schoolName;
         private int priority;
     }

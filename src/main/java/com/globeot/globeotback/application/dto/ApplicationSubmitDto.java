@@ -1,5 +1,7 @@
 package com.globeot.globeotback.application.dto;
 
+import com.globeot.globeotback.application.enums.EnglishTestType;
+import jakarta.validation.constraints.Null;
 import lombok.Getter;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.NotEmpty;
@@ -7,6 +9,9 @@ import java.util.List;
 
 @Getter
 public class ApplicationSubmitDto {
+
+    @NotNull(message = "TOEFL/IELTS 선택은 필수입니다.")
+    private EnglishTestType testType;
 
     @NotNull(message = "환산 점수는 필수입니다.")
     private Double convertedScore;
@@ -23,7 +28,9 @@ public class ApplicationSubmitDto {
         @NotNull(message = "priority는 필수입니다.")
         private Integer priority;
 
-        @NotNull(message = "school_name는 필수입니다.")
+        private Integer schoolId;
+
+        @NotNull(message = "school_name은 필수입니다.")
         private String schoolName;
     }
 }
