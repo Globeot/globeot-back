@@ -88,8 +88,7 @@ public class ApplicationService {
     }
 
     public MyRankDto getMyRanking(Long userId) throws Exception {
-        List<Application> allApplications = applicationRepository.findAllByOrderByConvertedScoreDesc();
-
+        List<Application> allApplications = applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
         int totalApplicants = allApplications.size();
 
         Application myApplication = allApplications.stream()
@@ -131,7 +130,7 @@ public class ApplicationService {
         ObjectMapper objectMapper = new ObjectMapper();
 
         List<Application> applications =
-                applicationRepository.findAllByOrderByConvertedScoreDesc();
+                applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
 
         List<RankingListDto> result = new ArrayList<>();
 
