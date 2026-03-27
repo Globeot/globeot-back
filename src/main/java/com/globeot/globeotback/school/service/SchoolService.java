@@ -1,6 +1,7 @@
 package com.globeot.globeotback.school.service;
 
 import com.globeot.globeotback.school.domain.School;
+import com.globeot.globeotback.school.dto.SchoolListDto;
 import com.globeot.globeotback.school.dto.SchoolSearchDto;
 import com.globeot.globeotback.school.repository.SchoolRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,5 +32,28 @@ public class SchoolService {
                         s.getName()
                 ))
                 .toList();
+    }
+
+    public List<SchoolListDto> getSchools(String keyword, Double minScore, Double maxScore) {
+
+        List<School> schools =
+                schoolRepository.findByKeywordAndScoreRange(keyword, minScore, maxScore);
+
+        return schools.stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    private SchoolListDto toDto(School school) {
+        return SchoolListDto.builder()
+                .schoolId(school.getId())
+                .country(school.getCountry())
+                .city(school.getCity())
+                .schoolName(school.getName())
+                .avgScore(school.getAvgScore())
+                .travelAccessLevel(school.getTravelAccessLevel())
+                .monthlyCost(school.getMonthlyCost())
+                .officialSite(school.getOfficialSite())
+                .build();
     }
 }
