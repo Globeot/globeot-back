@@ -12,31 +12,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Set up SSH
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x ./gradlew
+
+      - name: Build jar
+        run: ./gradlew clean bootJar -x test
+
+      - name: Set up SSH key
         run: |
           echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
           chmod 600 key.pem
 
-      - name: Deploy to EC2
+      - name: Copy jar to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+          scp -o StrictHostKeyChecking=no -i key.pem build/libs/*.jar \
+          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/globeot-back/app.jar
+
+      - name: Deploy on EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no -i key.pem \
+          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << EOF
 
           cd ~/globeot-back
 
-          # 최신 main 강제 업데이트
-          git fetch origin
-          git reset --hard origin/main
+          cat > .env.properties << 'ENVEOF'
+          ${{ secrets.ENV_FILE }}
+          ENVEOF
 
-          # env 파일 생성
-          echo "${{ secrets.ENV_FILE }}" > .env.properties
-
-          # 기존 Java 프로세스 종료
           pkill -f 'java -jar' || true
 
-          # Fat jar 빌드 (테스트 제외)
-          ./gradlew clean bootJar -x test
-
-          # 실행 (spring.config.location 제거)
-          nohup java -jar build/libs/*.jar --spring.profiles.active=prod > app.log 2>&1 &
+          nohup java -Xms256m -Xmx512m -jar app.jar \
+          --spring.profiles.active=prod \
+          > app.log 2>&1 &
 
           EOF
