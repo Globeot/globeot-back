@@ -2,6 +2,7 @@ package com.globeot.globeotback.community.repository;
 
 import com.globeot.globeotback.community.domain.Article;
 import com.globeot.globeotback.community.enums.ArticleStatus;
+import com.globeot.globeotback.school.dto.SchoolArticleListDto;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +32,23 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
         ORDER BY a.createdAt DESC
         """)
     List<Object[]> findMyArticlesWithCommentCount(@Param("userId") Long userId);
+
+    @Query("""
+        SELECT new com.globeot.globeotback.school.dto.SchoolArticleListDto(
+            a.id,
+            a.school.id,
+            CAST(a.exchangeStatus AS string),
+            a.title,
+            a.createdAt,
+            u.nickname,
+            COUNT(c.id)
+        )
+        FROM Article a
+        JOIN a.author u
+        LEFT JOIN Comment c ON c.article.id = a.id
+        WHERE a.school.id = :schoolId
+        GROUP BY a.id, a.exchangeStatus, a.title, a.createdAt, u.nickname
+        ORDER BY a.createdAt DESC
+    """)
+    List<SchoolArticleListDto> findSchoolArticles(@Param("schoolId") Long schoolId);
 }

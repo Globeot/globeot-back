@@ -1,7 +1,9 @@
 package com.globeot.globeotback.school.service;
 
+import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.school.domain.Favorite;
 import com.globeot.globeotback.school.domain.School;
+import com.globeot.globeotback.school.dto.SchoolArticleListDto;
 import com.globeot.globeotback.school.dto.SchoolDetailDto;
 import com.globeot.globeotback.school.dto.SchoolListDto;
 import com.globeot.globeotback.school.dto.SchoolSearchDto;
@@ -22,6 +24,7 @@ public class SchoolService {
     private final SchoolRepository schoolRepository;
     private final FavoriteRepository favoriteRepository;
     private final UserRepository userRepository;
+    private final ArticleRepository articleRepository;
 
     public List<SchoolSearchDto> searchSchools(String name) {
 
@@ -128,4 +131,12 @@ public class SchoolService {
 
         return "관심 학교가 해제되었습니다.";
     }
+
+    public List<SchoolArticleListDto> getSchoolArticles(Long schoolId) {
+        schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 학교입니다."));
+
+        return articleRepository.findSchoolArticles(schoolId);
+    }
+
 }

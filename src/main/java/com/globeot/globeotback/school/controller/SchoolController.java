@@ -1,5 +1,6 @@
 package com.globeot.globeotback.school.controller;
 
+import com.globeot.globeotback.school.dto.SchoolArticleListDto;
 import com.globeot.globeotback.school.dto.SchoolDetailDto;
 import com.globeot.globeotback.school.dto.SchoolListDto;
 import com.globeot.globeotback.school.dto.SchoolSearchDto;
@@ -62,5 +63,10 @@ public class SchoolController {
             @AuthenticationPrincipal Long userId
     ) {
         return schoolService.removeFavorite(userId, schoolId);
+    }
+
+    @GetMapping("/{schoolId}/articles")
+    public List<SchoolArticleListDto> getSchoolArticles(@PathVariable Long schoolId) {
+        return schoolService.getSchoolArticles(schoolId);
     }
 }
