@@ -13,9 +13,6 @@ public class ApplicationSubmitDto {
     @NotNull(message = "TOEFL/IELTS 선택은 필수입니다.")
     private EnglishTestType testType;
 
-    @NotNull(message = "환산 점수는 필수입니다.")
-    private Double convertedScore;
-
     @NotNull(message = "학기는 필수입니다.")
     private String semester;
 

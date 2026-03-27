@@ -45,8 +45,12 @@ public class ApplicationService {
         }
     }
 
-    public void createApplication(Long userId, ApplicationSubmitDto request, MultipartFile image)
-            throws JsonProcessingException {
+    public void createApplication(
+            Long userId,
+            ApplicationSubmitDto request,
+            MultipartFile gpaImage,
+            MultipartFile englishScoreImage
+    ) throws JsonProcessingException {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
@@ -57,14 +61,14 @@ public class ApplicationService {
 
         validateSchools(request.getSchools());
 
-        String imageUrl = s3Service.upload(image);
+        String gpaImageUrl = s3Service.upload(gpaImage);
+        String englishScoreImageUrl = s3Service.upload(englishScoreImage);
 
-        // schools JSON 변환
         List<Map<String, Object>> schoolsJsonList = request.getSchools().stream()
                 .map(s -> {
                     Map<String, Object> map = new HashMap<>();
                     map.put("school_id", s.getSchoolId());
-                    map.put("school_name", s.getSchoolName()); // 이름은 항상 넣음
+                    map.put("school_name", s.getSchoolName());
                     map.put("priority", s.getPriority());
                     return map;
                 })
@@ -75,11 +79,14 @@ public class ApplicationService {
         Application application = Application.builder()
                 .user(user)
                 .englishTestType(request.getTestType())
-                .convertedScore(request.getConvertedScore())
-                .certificateImageUrl(imageUrl)
+                .gpa(null)
+                .convertedScore(null)
+                .englishScore(null)
+                .gpaImageUrl(gpaImageUrl)
+                .englishTestImageUrl(englishScoreImageUrl)
                 .semester(request.getSemester())
                 .schools(schoolsJson)
-                .status(Status.SUBMITTED)
+                .status(Status.PENDING)
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -132,6 +139,13 @@ public class ApplicationService {
         List<Application> applications =
                 applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
 
+        List<Double> gpaList = applications.stream()
+                .map(Application::getGpa)
+                .filter(Objects::nonNull)
+                .sorted(Comparator.reverseOrder())
+                .toList();
+        int total = gpaList.size();
+
         List<RankingListDto> tempList = new ArrayList<>();
 
         for (Application app : applications) {
@@ -155,6 +169,7 @@ public class ApplicationService {
             tempList.add(new RankingListDto(
                     0, // rank는 나중에 넣음
                     app.getConvertedScore(),
+                    app.getGpa(),
                     app.getEnglishTestType().name(),
                     app.getSemester(),
                     schoolInfos,
@@ -200,6 +215,7 @@ public class ApplicationService {
             result.add(new RankingListDto(
                     rank,
                     dto.getScore(),
+                    dto.getGpa(),
                     dto.getTestType(),
                     dto.getSemester(),
                     dto.getSchools(),

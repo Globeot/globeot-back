@@ -27,20 +27,26 @@ public class ApplicationController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public String submitApplication(
             @Valid @RequestPart("data") ApplicationSubmitDto request,
-            @Parameter(description = "이미지 파일", content = @Content(mediaType = "multipart/form-data"))
-            @RequestPart("image") MultipartFile image,
+
+            @RequestPart("gpaImage") MultipartFile gpaImage,
+            @RequestPart("englishScoreImage") MultipartFile englishImage,
+
             @AuthenticationPrincipal Long userId
-    ) throws BadRequestException, JsonProcessingException {
+    ) throws Exception {
 
         if (userId == null) {
             throw new BadRequestException("인증 정보 없음");
         }
-        if (image == null || image.isEmpty()) {
-            throw new BadRequestException("인증 이미지는 필수입니다.");
+
+        if (gpaImage == null || gpaImage.isEmpty()) {
+            throw new BadRequestException("학점 증빙 이미지는 필수입니다.");
         }
 
+        if (englishImage == null || englishImage.isEmpty()) {
+            throw new BadRequestException("어학 성적표 이미지는 필수입니다.");
+        }
 
-        applicationService.createApplication(userId, request, image);
+        applicationService.createApplication(userId, request, gpaImage, englishImage);
 
         return "지원서 제출 완료";
     }

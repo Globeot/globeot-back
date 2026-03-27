@@ -26,9 +26,14 @@ public class Application {
     @Enumerated(EnumType.STRING)
     private EnglishTestType englishTestType;
 
+    private Double gpa;
     private Double convertedScore;
 
-    private String certificateImageUrl;
+    @Column(columnDefinition = "JSON")
+    private String englishScore; // [{"reading": 90, "listening": 90, "speaking": 90, "writing": 90}]
+
+    private String gpaImageUrl;
+    private String englishTestImageUrl;
 
     private String semester;
 

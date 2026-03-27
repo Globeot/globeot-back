@@ -11,6 +11,7 @@ public class RankingListDto {
 
     private int rank;
     private Double score;
+    private Double gpa;
     private String testType;
     private String semester;
     private List<SchoolInfo> schools;
