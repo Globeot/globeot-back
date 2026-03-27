@@ -9,6 +9,8 @@ import java.util.List;
 
 public interface FavoriteRepository extends JpaRepository<Favorite, Long> {
 
+    boolean existsByUserIdAndSchoolId(Long userId, Long schoolId);
+
     @Query("""
         SELECT f.id, s.id, s.name, s.city, s.country, s.avgScore, s.travelAccessLevel, s.monthlyCost, s.officialSite
         FROM Favorite f
