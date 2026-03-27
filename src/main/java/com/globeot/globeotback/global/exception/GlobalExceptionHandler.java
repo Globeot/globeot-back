@@ -3,10 +3,21 @@ package com.globeot.globeotback.global.exception;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.support.MissingServletRequestPartException;
+
+import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public static class BadRequestException extends RuntimeException {
+        public BadRequestException(String message) {
+            super(message);
+        }
+    }
 
     // 잘못된 요청 (회원가입 중복, 비밀번호 틀림 등)
     @ExceptionHandler(IllegalArgumentException.class)
@@ -32,6 +43,34 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST) // 또는 409도 가능
                 .body(response);
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<?> handleBadRequestException(BadRequestException e) {
+        return ResponseEntity
+                .badRequest()
+                .body(Map.of("message", e.getMessage()));
+    }
+
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ErrorResponse> handleMissingServletRequestPart(MissingServletRequestPartException e) {
+        ErrorResponse response = new ErrorResponse("필수 요청 데이터가 누락되었습니다: " + e.getRequestPartName());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException e) {
+
+        String message = e.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .findFirst()
+                .map(error -> error.getDefaultMessage())
+                .orElse("잘못된 요청입니다.");
+
+        return ResponseEntity
+                .badRequest()
+                .body(Map.of("message", message));
     }
 
     // 서버 에러
