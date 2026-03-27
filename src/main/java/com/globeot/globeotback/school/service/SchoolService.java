@@ -1,14 +1,18 @@
 package com.globeot.globeotback.school.service;
 
+import com.globeot.globeotback.school.domain.Favorite;
 import com.globeot.globeotback.school.domain.School;
 import com.globeot.globeotback.school.dto.SchoolDetailDto;
 import com.globeot.globeotback.school.dto.SchoolListDto;
 import com.globeot.globeotback.school.dto.SchoolSearchDto;
 import com.globeot.globeotback.school.repository.FavoriteRepository;
 import com.globeot.globeotback.school.repository.SchoolRepository;
+import com.globeot.globeotback.user.domain.User;
+import com.globeot.globeotback.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -17,6 +21,7 @@ public class SchoolService {
 
     private final SchoolRepository schoolRepository;
     private final FavoriteRepository favoriteRepository;
+    private final UserRepository userRepository;
 
     public List<SchoolSearchDto> searchSchools(String name) {
 
@@ -88,5 +93,39 @@ public class SchoolService {
                 .officialSite(school.getOfficialSite())
                 .isFavorite(isFavorite)
                 .build();
+    }
+
+    public String addFavorite(Long userId, Long schoolId) {
+
+        School school = schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 학교입니다."));
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
+
+        boolean exists = favoriteRepository.existsByUser_IdAndSchool_Id(userId, schoolId);
+
+        if (!exists) {
+            Favorite favorite = Favorite.builder()
+                    .user(user)
+                    .school(school)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+
+            favoriteRepository.save(favorite);
+        }
+
+        return "관심 학교로 등록되었습니다.";
+    }
+
+    public String removeFavorite(Long userId, Long schoolId) {
+
+        School school = schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 학교입니다."));
+
+        favoriteRepository.findByUser_IdAndSchool_Id(userId, schoolId)
+                .ifPresent(favoriteRepository::delete);
+
+        return "관심 학교가 해제되었습니다.";
     }
 }

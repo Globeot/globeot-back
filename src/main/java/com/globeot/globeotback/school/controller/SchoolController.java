@@ -47,4 +47,20 @@ public class SchoolController {
         }
         return schoolService.getSchoolDetail(schoolId, userId);
     }
+
+    @PostMapping("/{schoolId}/favorite")
+    public String addFavorite(
+            @PathVariable Long schoolId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return schoolService.addFavorite(userId, schoolId);
+    }
+
+    @DeleteMapping("/{schoolId}/favorite")
+    public String removeFavorite(
+            @PathVariable Long schoolId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return schoolService.removeFavorite(userId, schoolId);
+    }
 }
