@@ -30,12 +30,13 @@ public class SchoolController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Double minScore,
             @RequestParam(required = false) Double maxScore,
+            @RequestParam(defaultValue = "false") Boolean noScoreOnly,
             @AuthenticationPrincipal Long userId
     ) {
         if (userId == null) {
             throw new RuntimeException("인증 정보 없음");
         }
-        return schoolService.getSchools(keyword, minScore, maxScore);
+        return schoolService.getSchools(keyword, minScore, maxScore, noScoreOnly);
     }
 
     @GetMapping("/{schoolId}")

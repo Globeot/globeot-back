@@ -45,10 +45,10 @@ public class SchoolService {
                 .toList();
     }
 
-    public List<SchoolListDto> getSchools(String keyword, Double minScore, Double maxScore) {
+    public List<SchoolListDto> getSchools(String keyword, Double minScore, Double maxScore, boolean noScoreOnly) {
 
         List<School> schools =
-                schoolRepository.findByKeywordAndScoreRange(keyword, minScore, maxScore);
+                schoolRepository.findByKeywordAndScoreRange(keyword, minScore, maxScore, noScoreOnly);
 
         return schools.stream()
                 .map(this::toDto)
@@ -71,7 +71,7 @@ public class SchoolService {
     public SchoolDetailDto getSchoolDetail(Long schoolId, Long userId) {
 
         School school = schoolRepository.findById(schoolId)
-                .orElseThrow(() -> new IllegalArgumentException("School not found"));
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 학교입니다."));
 
         boolean isFavorite = favoriteRepository
                 .existsByUserIdAndSchoolId(userId, schoolId);

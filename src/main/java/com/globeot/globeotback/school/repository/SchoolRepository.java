@@ -12,24 +12,31 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
     List<School> findTop10ByNameContainingIgnoreCaseOrderByNameAsc(String keyword);
 
     @Query("""
-        SELECT s
-        FROM School s
-        WHERE
-            (
-                :keyword IS NULL
-                OR :keyword = ''
-                OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(s.country) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(s.city) LIKE LOWER(CONCAT('%', :keyword, '%'))
+    SELECT s
+    FROM School s
+    WHERE
+        (
+            :keyword IS NULL
+            OR :keyword = ''
+            OR LOWER(s.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(s.country) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            OR LOWER(s.city) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        )
+        AND (
+            (:noScoreOnly = TRUE AND s.avgScore IS NULL)
+            OR (
+                (:noScoreOnly IS NULL OR :noScoreOnly = FALSE)
+                AND (:minScore IS NULL OR s.avgScore >= :minScore)
+                AND (:maxScore IS NULL OR s.avgScore <= :maxScore)
             )
-            AND (:minScore IS NULL OR s.avgScore >= :minScore)
-            AND (:maxScore IS NULL OR s.avgScore <= :maxScore)
-        ORDER BY s.name ASC
-    """)
+        )
+    ORDER BY s.name ASC
+""")
     List<School> findByKeywordAndScoreRange(
             @Param("keyword") String keyword,
             @Param("minScore") Double minScore,
-            @Param("maxScore") Double maxScore
+            @Param("maxScore") Double maxScore,
+            @Param("noScoreOnly") Boolean noScoreOnly
     );
 
 }
