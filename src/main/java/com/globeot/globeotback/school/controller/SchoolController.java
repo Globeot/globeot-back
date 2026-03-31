@@ -1,9 +1,6 @@
 package com.globeot.globeotback.school.controller;
 
-import com.globeot.globeotback.school.dto.SchoolArticleListDto;
-import com.globeot.globeotback.school.dto.SchoolDetailDto;
-import com.globeot.globeotback.school.dto.SchoolListDto;
-import com.globeot.globeotback.school.dto.SchoolSearchDto;
+import com.globeot.globeotback.school.dto.*;
 import com.globeot.globeotback.school.service.SchoolService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -67,7 +64,18 @@ public class SchoolController {
     }
 
     @GetMapping("/{schoolId}/articles")
-    public List<SchoolArticleListDto> getSchoolArticles(@PathVariable Long schoolId) {
+    public List<SchoolArticleListDto> getSchoolArticles(
+            @PathVariable Long schoolId,
+            @AuthenticationPrincipal Long userId
+    ) {
         return schoolService.getSchoolArticles(schoolId);
+    }
+
+    @GetMapping("/{schoolId}/history")
+    public List<AssignmentHistoryDto> getSchoolHistory(
+            @PathVariable Long schoolId,
+            @AuthenticationPrincipal Long userId
+    ) {
+        return schoolService.getSchoolHistory(schoolId);
     }
 }
