@@ -1,12 +1,10 @@
 package com.globeot.globeotback.school.service;
 
+import com.globeot.globeotback.application.repository.AssignmentRepository;
 import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.school.domain.Favorite;
 import com.globeot.globeotback.school.domain.School;
-import com.globeot.globeotback.school.dto.SchoolArticleListDto;
-import com.globeot.globeotback.school.dto.SchoolDetailDto;
-import com.globeot.globeotback.school.dto.SchoolListDto;
-import com.globeot.globeotback.school.dto.SchoolSearchDto;
+import com.globeot.globeotback.school.dto.*;
 import com.globeot.globeotback.school.repository.FavoriteRepository;
 import com.globeot.globeotback.school.repository.SchoolRepository;
 import com.globeot.globeotback.user.domain.User;
@@ -25,6 +23,7 @@ public class SchoolService {
     private final FavoriteRepository favoriteRepository;
     private final UserRepository userRepository;
     private final ArticleRepository articleRepository;
+    private final AssignmentRepository assignmentRepository;
 
     public List<SchoolSearchDto> searchSchools(String name) {
 
@@ -138,5 +137,13 @@ public class SchoolService {
 
         return articleRepository.findSchoolArticles(schoolId);
     }
+
+    public List<AssignmentHistoryDto> getSchoolHistory(Long schoolId) {
+        schoolRepository.findById(schoolId)
+                .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 학교입니다."));
+
+        return assignmentRepository.findSchoolHistoryBySchoolId(schoolId);
+    }
+
 
 }
