@@ -18,7 +18,7 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - name: Grant execute permission for gradlew
+      - name: Grant execute permission
         run: chmod +x ./gradlew
 
       - name: Build jar
@@ -37,7 +37,8 @@ jobs:
       - name: Deploy on EC2
         run: |
           ssh -o StrictHostKeyChecking=no -i key.pem \
-          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << EOF
+          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e
 
           cd ~/globeot-back
 
@@ -45,10 +46,30 @@ jobs:
           ${{ secrets.ENV_FILE }}
           ENVEOF
 
-          pkill -f 'java -jar' || true
+          echo "Stopping app..."
+          if [ -f app.pid ]; then
+            kill -15 "$(cat app.pid)" || true
+            rm -f app.pid
+            sleep 5
+          fi
 
-          nohup java -Xms256m -Xmx512m -jar app.jar \
-          --spring.profiles.active=prod \
-          > app.log 2>&1 &
+          pkill -f 'app.jar' || true
+          sleep 5
+
+          echo "Starting app..."
+          setsid nohup java -Xms256m -Xmx512m -jar app.jar \
+            --spring.profiles.active=prod \
+            --spring.config.additional-location=file:.env.properties \
+            > app.log 2>&1 < /dev/null &
+
+          echo $! > app.pid
+
+          sleep 10
+
+          echo "PID: $(cat app.pid)"
+          ps -p "$(cat app.pid)" -o pid,cmd
+
+          echo "Health check:"
+          curl -I http://localhost:8080/health || true
 
           EOF
