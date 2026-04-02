@@ -16,6 +16,7 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(List.of(
+                "http://localhost:3000",
                 "https://globeot.duckdns.org",
                 "https://globeot-front-idp2vz3vi-ayyoo-1970s-projects.vercel.app/"
         ));
