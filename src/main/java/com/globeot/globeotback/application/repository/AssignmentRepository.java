@@ -12,13 +12,13 @@ import java.util.List;
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
     @Query("""
-        SELECT new com.globeot.globeotback.school.dto.AssignmentHistoryDto(
-            a.application.semester,
-            a.application.convertedScore
-        )
-        FROM Assignment a
-        WHERE a.school.id = :schoolId
-        ORDER BY a.application.semester DESC, a.application.convertedScore DESC
-    """)
+    SELECT new com.globeot.globeotback.school.dto.AssignmentHistoryDto(
+        a.semester,
+        a.convertedScore
+    )
+    FROM Assignment a
+    WHERE a.school.id = :schoolId
+    ORDER BY a.semester DESC, a.convertedScore DESC
+""")
     List<AssignmentHistoryDto> findSchoolHistoryBySchoolId(@Param("schoolId") Long schoolId);
 }
