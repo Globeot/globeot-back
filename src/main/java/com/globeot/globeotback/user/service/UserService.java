@@ -168,21 +168,7 @@ public class UserService {
 
     @Transactional
     public List<MyFavoriteDto> getMyFavoriteSchools(Long userId) {
-        List<Object[]> results = favoriteRepository.findMyFavoriteSchools(userId);
-
-        return results.stream()
-                .map(row -> new MyFavoriteDto(
-                        (Long) row[0],                  // favoriteId
-                        (Long) row[1],                  // schoolId
-                        (String) row[2],                // name
-                        (String) row[3],                // city
-                        (String) row[4],                // country
-                        (Double) row[5],                // avgScore
-                        (com.globeot.globeotback.school.enums.Level) row[6], // travelAccessLevel
-                        (String) row[7],                // monthlyCost
-                        (String) row[8]                 // officialSite
-                ))
-                .collect(Collectors.toList());
+        return favoriteRepository.findMyFavoriteSchools(userId);
     }
 
 }

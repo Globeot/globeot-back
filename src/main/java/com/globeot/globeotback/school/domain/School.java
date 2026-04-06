@@ -46,15 +46,6 @@ public class School {
 
     private String officialSite;
 
-    private Double avgScore;
-
-    private Double maxScore;
-
-    private Double minScore;
-
-    @Column(columnDefinition = "JSON")
-    private String assignments;
-
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
