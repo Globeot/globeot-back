@@ -46,12 +46,6 @@ public class School {
 
     private String officialSite;
 
-    private Double avgScore;
-
-    private Double maxScore;
-
-    private Double minScore;
-
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
