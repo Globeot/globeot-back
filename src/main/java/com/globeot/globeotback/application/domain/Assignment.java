@@ -16,10 +16,10 @@ public class Assignment {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long assignmentResultId;
+    private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "user_id")
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -30,4 +30,9 @@ public class Assignment {
     @JoinColumn(name = "application_id")
     private Application application;
 
+    @Column(name = "semester", nullable = false, length = 20)
+    private String semester;
+
+    @Column(name = "converted_score", nullable = false)
+    private Double convertedScore;
 }

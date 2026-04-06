@@ -29,5 +29,9 @@ public class SchoolDetailDto {
     private String buddyProgram;
     private String officialSite;
 
+    private Double avgScore;
+    private Double minScore;
+    private Double maxScore;
+
     private boolean isFavorite;
 }

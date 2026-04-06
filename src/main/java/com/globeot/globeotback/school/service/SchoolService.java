@@ -45,22 +45,18 @@ public class SchoolService {
     }
 
     public List<SchoolListDto> getSchools(String keyword, Double minScore, Double maxScore, boolean noScoreOnly) {
-
-        List<School> schools =
-                schoolRepository.findByKeywordAndScoreRange(keyword, minScore, maxScore, noScoreOnly);
-
-        return schools.stream()
-                .map(this::toDto)
-                .toList();
+        return schoolRepository.findByKeywordAndScoreRange(keyword, minScore, maxScore, noScoreOnly);
     }
 
     private SchoolListDto toDto(School school) {
+        SchoolScoreDto score = assignmentRepository.findScoreStatsBySchoolId(school.getId());
+
         return SchoolListDto.builder()
                 .schoolId(school.getId())
                 .country(school.getCountry())
                 .city(school.getCity())
                 .schoolName(school.getName())
-                .avgScore(school.getAvgScore())
+                .avgScore(score != null ? score.getAvgScore() : null)
                 .travelAccessLevel(school.getTravelAccessLevel())
                 .monthlyCost(school.getMonthlyCost())
                 .officialSite(school.getOfficialSite())
@@ -75,10 +71,12 @@ public class SchoolService {
         boolean isFavorite = favoriteRepository
                 .existsByUserIdAndSchoolId(userId, schoolId);
 
-        return toDetailDto(school, isFavorite);
+        SchoolScoreDto score = assignmentRepository.findScoreStatsBySchoolId(schoolId);
+
+        return toDetailDto(school, isFavorite, score);
     }
 
-    private SchoolDetailDto toDetailDto(School school, boolean isFavorite) {
+    private SchoolDetailDto toDetailDto(School school, boolean isFavorite, SchoolScoreDto score) {
         return SchoolDetailDto.builder()
                 .schoolId(school.getId())
                 .imgUrl(school.getImageUrl())
@@ -94,6 +92,9 @@ public class SchoolService {
                 .buddyProgram(school.getBuddyProgram())
                 .officialSite(school.getOfficialSite())
                 .isFavorite(isFavorite)
+                .avgScore(score != null ? score.getAvgScore() : null)
+                .minScore(score != null ? score.getMinScore() : null)
+                .maxScore(score != null ? score.getMaxScore() : null)
                 .build();
     }
 
@@ -122,7 +123,7 @@ public class SchoolService {
 
     public String removeFavorite(Long userId, Long schoolId) {
 
-        School school = schoolRepository.findById(schoolId)
+        schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new IllegalArgumentException("등록되지 않은 학교입니다."));
 
         favoriteRepository.findByUser_IdAndSchool_Id(userId, schoolId)
@@ -144,6 +145,4 @@ public class SchoolService {
 
         return assignmentRepository.findSchoolHistoryBySchoolId(schoolId);
     }
-
-
 }
