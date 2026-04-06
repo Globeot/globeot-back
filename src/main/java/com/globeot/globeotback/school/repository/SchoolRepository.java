@@ -37,7 +37,7 @@ public interface SchoolRepository extends JpaRepository<School, Long> {
                 AND (:maxScore IS NULL OR AVG(a.convertedScore) <= :maxScore)
             )
         )
-        ORDER BY s.name ASC
+        ORDER BY AVG(a.convertedScore) DESC
     """)
     List<SchoolListDto> findByKeywordAndScoreRange(
             @Param("keyword") String keyword,
