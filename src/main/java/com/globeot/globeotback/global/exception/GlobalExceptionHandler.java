@@ -1,65 +1,27 @@
 package com.globeot.globeotback.global.exception;
 
+import com.globeot.globeotback.global.response.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
-
-import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public static class BadRequestException extends RuntimeException {
-        public BadRequestException(String message) {
-            super(message);
-        }
-    }
-
-    // 잘못된 요청 (회원가입 중복, 비밀번호 틀림 등)
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(
-            IllegalArgumentException e
-    ) {
-
-        ErrorResponse response = new ErrorResponse(e.getMessage());
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException e) {
+        ErrorCode errorCode = e.getErrorCode();
 
         return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(response);
-    }
-
-    // 비즈니스 로직 예외 (탈퇴 불가 등)
-    @ExceptionHandler(IllegalStateException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalStateException(
-            IllegalStateException e
-    ) {
-
-        ErrorResponse response = new ErrorResponse(e.getMessage());
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST) // 또는 409도 가능
-                .body(response);
-    }
-
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<?> handleBadRequestException(BadRequestException e) {
-        return ResponseEntity
-                .badRequest()
-                .body(Map.of("message", e.getMessage()));
-    }
-
-    @ExceptionHandler(MissingServletRequestPartException.class)
-    public ResponseEntity<ErrorResponse> handleMissingServletRequestPart(MissingServletRequestPartException e) {
-        ErrorResponse response = new ErrorResponse("필수 요청 데이터가 누락되었습니다: " + e.getRequestPartName());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+                .status(errorCode.getStatus())
+                .body(ApiResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<?> handleValidationException(MethodArgumentNotValidException e) {
+    public ResponseEntity<ApiResponse<Object>> handleValidationException(MethodArgumentNotValidException e) {
 
         String message = e.getBindingResult()
                 .getFieldErrors()
@@ -70,15 +32,32 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .badRequest()
-                .body(Map.of("message", message));
+                .body(ApiResponse.onFailure("COMMON400", message));
     }
 
-    // 서버 에러
+    @ExceptionHandler(MissingServletRequestPartException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMissingServletRequestPartException(MissingServletRequestPartException e) {
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.onFailure("COMMON400", "필수 요청 데이터가 누락되었습니다: " + e.getRequestPartName()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgumentException(IllegalArgumentException e) {
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.onFailure("COMMON400", e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalStateException(IllegalStateException e) {
+        return ResponseEntity
+                .badRequest()
+                .body(ApiResponse.onFailure("COMMON400", e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleException(
-            Exception e,
-            HttpServletRequest request
-    ) {
+    public ResponseEntity<ApiResponse<Object>> handleException(Exception e, HttpServletRequest request) {
 
         String uri = request.getRequestURI();
 
@@ -88,11 +67,8 @@ public class GlobalExceptionHandler {
 
         e.printStackTrace();
 
-        ErrorResponse response =
-                new ErrorResponse("서버 내부 오류가 발생했습니다.");
-
         return ResponseEntity
-                .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(response);
+                .internalServerError()
+                .body(ApiResponse.onFailure("COMMON500", "서버 내부 오류가 발생했습니다."));
     }
 }
