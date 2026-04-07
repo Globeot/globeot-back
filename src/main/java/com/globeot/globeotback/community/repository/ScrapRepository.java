@@ -17,4 +17,8 @@ public interface ScrapRepository extends JpaRepository<Scrap, Long> {
         ORDER BY s.createdAt DESC
         """)
     List<Object[]> findMyScrapsWithArticle(@Param("userId") Long userId);
+
+    boolean existsByUser_IdAndArticle_Id(Long userId, Long articleId);
+
+    java.util.Optional<Scrap> findByUser_IdAndArticle_Id(Long userId, Long articleId);
 }

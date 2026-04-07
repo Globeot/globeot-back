@@ -9,4 +9,6 @@ import java.util.List;
 
 public interface ReportRepository extends JpaRepository<Report, Long> {
     boolean existsByArticle_Author_IdAndStatus(Long userId, ReportStatus status);
+
+    boolean existsByUser_IdAndArticle_Id(Long userId, Long articleId);
 }

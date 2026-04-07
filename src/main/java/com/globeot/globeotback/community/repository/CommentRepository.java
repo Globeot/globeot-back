@@ -19,5 +19,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
         ORDER BY c.createdAt DESC
         """)
     List<Object[]> findMyCommentsWithArticleTitle(@Param("userId") Long userId);
+
+    void deleteAllByArticle_Id(Long articleId);
+
     Long countByArticle_Id(Long articleId);
+
+    List<Comment> findAllByArticle_IdOrderByCreatedAtAsc(Long articleId);
 }

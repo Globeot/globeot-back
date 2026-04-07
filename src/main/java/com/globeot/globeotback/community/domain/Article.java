@@ -6,7 +6,10 @@ import com.globeot.globeotback.community.enums.Type;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "articles")
@@ -42,6 +45,12 @@ public class Article {
 
     @Column(columnDefinition = "TEXT")
     private String content;
+
+    private String topic;
+
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "json")
+    private List<String> imageUrls;
 
     @Enumerated(EnumType.STRING)
     private ArticleStatus articleStatus;

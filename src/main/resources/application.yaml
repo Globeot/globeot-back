@@ -25,6 +25,10 @@ spring:
       ddl-auto: validate
       database-platform: org.hibernate.dialect.MySQLDialect
     show-sql: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 30MB
 
 server:
   address: 0.0.0.0
