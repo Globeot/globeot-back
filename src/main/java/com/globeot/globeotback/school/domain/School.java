@@ -40,7 +40,7 @@ public class School {
 
     private String monthlyCost;
 
-    private int internationalStudentRatio;
+    private Integer internationalStudentRatio;
 
     private String buddyProgram;
 

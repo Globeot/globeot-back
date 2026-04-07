@@ -9,15 +9,15 @@ import com.globeot.globeotback.application.dto.MyRankDto;
 import com.globeot.globeotback.application.dto.RankingListDto;
 import com.globeot.globeotback.application.enums.Status;
 import com.globeot.globeotback.application.repository.ApplicationRepository;
+import com.globeot.globeotback.global.exception.CustomException;
+import com.globeot.globeotback.global.exception.ErrorCode;
 import com.globeot.globeotback.school.repository.SchoolRepository;
 import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.repository.UserRepository;
-import com.globeot.globeotback.global.exception.GlobalExceptionHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,18 +30,18 @@ public class ApplicationService {
     private final UserRepository userRepository;
     private final S3Service s3Service;
     private final SchoolRepository schoolRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper(); // ObjectMapper 한 번만 생성
+    private final ObjectMapper objectMapper;
 
     private void validateSchools(List<ApplicationSubmitDto.SchoolRequest> schools) {
         if (schools == null || schools.isEmpty()) {
-            throw new GlobalExceptionHandler.BadRequestException("학교 최소 1개 선택은 필수입니다.");
+            throw new CustomException(ErrorCode.APPLICATION_SCHOOL_REQUIRED);
         }
 
         boolean hasPriority1 = schools.stream()
                 .anyMatch(s -> s.getPriority() == 1);
 
         if (!hasPriority1) {
-            throw new GlobalExceptionHandler.BadRequestException("1순위 학교 선택은 필수입니다.");
+            throw new CustomException(ErrorCode.APPLICATION_PRIORITY1_REQUIRED);
         }
     }
 
@@ -53,10 +53,10 @@ public class ApplicationService {
     ) throws JsonProcessingException {
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (applicationRepository.existsByUserId(userId)) {
-            throw new GlobalExceptionHandler.BadRequestException("이미 지원 내역을 제출한 사용자입니다.");
+            throw new CustomException(ErrorCode.APPLICATION_ALREADY_SUBMITTED);
         }
 
         validateSchools(request.getSchools());
@@ -95,34 +95,47 @@ public class ApplicationService {
     }
 
     public MyRankDto getMyRanking(Long userId) throws Exception {
-        List<Application> allApplications = applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
-        int totalApplicants = allApplications.size();
 
-        Application myApplication = allApplications.stream()
-                .filter(app -> app.getUser().getId().equals(userId))
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("신청 정보 없음"));
+        Application myApplication = applicationRepository.findByUserId(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.APPLICATION_NOT_FOUND));
 
-        int myRank = allApplications.indexOf(myApplication) + 1;
+        if (myApplication.getStatus() == Status.PENDING) {
+            throw new CustomException(ErrorCode.APPLICATION_PENDING);
+        }
 
-        // schools JSON 문자열 파싱
+        List<Application> approvedApplications =
+                applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
+
+        int totalApplicants = approvedApplications.size();
+
+        int myRank = approvedApplications.indexOf(myApplication) + 1;
+
         List<Map<String, Object>> schoolsList = objectMapper.readValue(
                 myApplication.getSchools(),
-                new TypeReference<>() {
-                }
+                new TypeReference<List<Map<String, Object>>>() {}
         );
 
         List<MyRankDto.SchoolRanking> schoolRankings = schoolsList.stream()
                 .map(s -> {
                     Integer priority = (Integer) s.get("priority");
-                    Long schoolId = s.get("school_id") != null ? Long.valueOf((Integer) s.get("school_id")) : null;
+                    Long schoolId = s.get("school_id") != null
+                            ? Long.valueOf(s.get("school_id").toString())
+                            : null;
+
                     String schoolName = schoolId != null
-                            ? schoolRepository.findById(schoolId).map(school -> school.getName()).orElse("Unknown")
+                            ? schoolRepository.findById(schoolId)
+                            .map(school -> school.getName())
+                            .orElse((String) s.get("school_name"))
                             : (String) s.get("school_name");
-                    return new MyRankDto.SchoolRanking(Math.toIntExact(schoolId), schoolName, priority);
+
+                    return new MyRankDto.SchoolRanking(
+                            schoolId != null ? Math.toIntExact(schoolId) : null,
+                            schoolName,
+                            priority
+                    );
                 })
-                .sorted(Comparator.comparingInt(MyRankDto.SchoolRanking::getPriority).reversed())
-                .collect(Collectors.toList());
+                .sorted(Comparator.comparingInt(MyRankDto.SchoolRanking::getPriority))
+                .toList();
 
         return new MyRankDto(
                 myRank,
@@ -133,25 +146,14 @@ public class ApplicationService {
     }
 
     public List<RankingListDto> getRankingList(String schoolName, String semester, Long userId) throws Exception {
-
-        ObjectMapper objectMapper = new ObjectMapper();
-
         List<Application> applications =
                 applicationRepository.findByStatusOrderByConvertedScoreDesc(Status.APPROVED);
-
-        List<Double> gpaList = applications.stream()
-                .map(Application::getGpa)
-                .filter(Objects::nonNull)
-                .sorted(Comparator.reverseOrder())
-                .toList();
-        int total = gpaList.size();
 
         List<RankingListDto> tempList = new ArrayList<>();
 
         for (Application app : applications) {
-
             List<Map<String, Object>> schools =
-                    objectMapper.readValue(app.getSchools(), new TypeReference<>() {});
+                    objectMapper.readValue(app.getSchools(), new TypeReference<List<Map<String, Object>>>() {});
 
             List<RankingListDto.SchoolInfo> schoolInfos =
                     schools.stream()
@@ -167,7 +169,7 @@ public class ApplicationService {
             boolean isMine = app.getUser().getId().equals(userId);
 
             tempList.add(new RankingListDto(
-                    0, // rank는 나중에 넣음
+                    0,
                     app.getConvertedScore(),
                     app.getGpa(),
                     app.getEnglishTestType().name(),
@@ -198,12 +200,10 @@ public class ApplicationService {
                 .toList();
 
         List<RankingListDto> result = new ArrayList<>();
-
         int rank = 0;
         Double prevScore = null;
 
         for (int i = 0; i < filtered.size(); i++) {
-
             RankingListDto dto = filtered.get(i);
             Double currentScore = dto.getScore();
 

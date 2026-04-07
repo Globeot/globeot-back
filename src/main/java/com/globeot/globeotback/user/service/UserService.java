@@ -1,4 +1,5 @@
 package com.globeot.globeotback.user.service;
+
 import com.globeot.globeotback.application.repository.ApplicationRepository;
 import com.globeot.globeotback.community.enums.ArticleStatus;
 import com.globeot.globeotback.community.enums.ReportStatus;
@@ -7,6 +8,8 @@ import com.globeot.globeotback.community.repository.ArticleRepository;
 import com.globeot.globeotback.community.repository.CommentRepository;
 import com.globeot.globeotback.community.repository.ReportRepository;
 import com.globeot.globeotback.community.repository.ScrapRepository;
+import com.globeot.globeotback.global.exception.CustomException;
+import com.globeot.globeotback.global.exception.ErrorCode;
 import com.globeot.globeotback.school.repository.FavoriteRepository;
 import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.dto.*;
@@ -15,8 +18,8 @@ import com.globeot.globeotback.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,7 +33,13 @@ public class UserService {
     private final FavoriteRepository favoriteRepository;
     private final ApplicationRepository applicationRepository;
 
-    public UserService(UserRepository userRepository, ArticleRepository articleRepository, ReportRepository reportRepository, CommentRepository commentRepository, ScrapRepository scrapRepository, FavoriteRepository favoriteRepository, ApplicationRepository applicationRepository ) {
+    public UserService(UserRepository userRepository,
+                       ArticleRepository articleRepository,
+                       ReportRepository reportRepository,
+                       CommentRepository commentRepository,
+                       ScrapRepository scrapRepository,
+                       FavoriteRepository favoriteRepository,
+                       ApplicationRepository applicationRepository) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
@@ -43,13 +52,13 @@ public class UserService {
     @Transactional
     public User getUserById(Long userId) {
         return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자 없음"));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     }
 
     @Transactional
     public void withdrawUser(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         boolean hasActiveSaleOrRecruiting = articleRepository.existsByAuthor_IdAndArticleStatusIn(
                 userId,
@@ -59,14 +68,13 @@ public class UserService {
         boolean hasPendingReport = reportRepository.existsByArticle_Author_IdAndStatus(userId, ReportStatus.PENDING);
 
         if (hasActiveSaleOrRecruiting) {
-            throw new IllegalStateException(
-                    "진행 중인 거래 또는 동행 게시글이 있어 탈퇴할 수 없습니다. 게시글을 먼저 종료해주세요."
-            );
-        }else if (hasPendingReport) {
-            throw new IllegalStateException(
-                    "신고 처리 중인 게시글이 있어 탈퇴할 수 없습니다. 신고 내역 처리를 기다려주세요."
-            );
+            throw new CustomException(ErrorCode.CANNOT_WITHDRAW_ACTIVE_ARTICLE);
         }
+
+        if (hasPendingReport) {
+            throw new CustomException(ErrorCode.CANNOT_WITHDRAW_PENDING_REPORT);
+        }
+
         applicationRepository.deleteByUser_Id(userId);
 
         LocalDateTime now = LocalDateTime.now();
@@ -74,13 +82,12 @@ public class UserService {
         user.getAuthAccounts().forEach(auth -> auth.setDeletedAt(now));
 
         userRepository.save(user);
-
     }
 
     @Transactional
     public UserProfileDto getUserProfile(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         return new UserProfileDto(
                 user.getId(),
@@ -93,7 +100,7 @@ public class UserService {
     @Transactional
     public UserProfileDto updateUserProfile(Long userId, UserProfileUpdateDto dto) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         if (dto.nickname() != null) {
             user.setNickname(dto.nickname());
@@ -119,13 +126,13 @@ public class UserService {
 
         return results.stream()
                 .map(row -> new MyArticleDto(
-                        (Long) row[0],                 // articleId
-                        (String) row[1],               // title
-                        (String) row[2],               // content
-                        (Type) row[3],               // type
-                        (ArticleStatus) row[4],        // articleStatus
-                        (java.time.LocalDateTime) row[5], // createdAt
-                        ((Long) row[6])                // commentCount
+                        (Long) row[0],
+                        (String) row[1],
+                        (String) row[2],
+                        (Type) row[3],
+                        (ArticleStatus) row[4],
+                        (java.time.LocalDateTime) row[5],
+                        (Long) row[6]
                 ))
                 .collect(Collectors.toList());
     }
@@ -136,10 +143,10 @@ public class UserService {
 
         return results.stream()
                 .map(row -> new MyCommentDto(
-                        (Long) row[0],         // articleId
-                        (String) row[1],       // title
-                        (String) row[2],       // content
-                        (java.time.LocalDateTime) row[3] // createdAt
+                        (Long) row[0],
+                        (String) row[1],
+                        (String) row[2],
+                        (java.time.LocalDateTime) row[3]
                 ))
                 .collect(Collectors.toList());
     }
@@ -151,16 +158,17 @@ public class UserService {
         return results.stream()
                 .map(row -> {
                     Long articleId = (Long) row[1];
-                    Long commentCount = commentRepository.countByArticle_Id(articleId); // 댓글 수 조회
+                    Long commentCount = commentRepository.countByArticle_Id(articleId);
+
                     return new MyScrapDto(
-                            (Long) row[0],               // scrapId
-                            articleId,                   // articleId
-                            (String) row[2],             // title
-                            (String) row[3],             // content
-                            (com.globeot.globeotback.community.enums.Type) row[4], // type
-                            (com.globeot.globeotback.community.enums.ArticleStatus) row[5], // articleStatus
-                            (java.time.LocalDateTime) row[6], // createdAt
-                            commentCount                  // commentCount
+                            (Long) row[0],
+                            articleId,
+                            (String) row[2],
+                            (String) row[3],
+                            (Type) row[4],
+                            (ArticleStatus) row[5],
+                            (java.time.LocalDateTime) row[6],
+                            commentCount
                     );
                 })
                 .collect(Collectors.toList());
@@ -170,5 +178,4 @@ public class UserService {
     public List<MyFavoriteDto> getMyFavoriteSchools(Long userId) {
         return favoriteRepository.findMyFavoriteSchools(userId);
     }
-
 }
