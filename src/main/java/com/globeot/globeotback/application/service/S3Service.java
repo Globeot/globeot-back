@@ -1,5 +1,7 @@
 package com.globeot.globeotback.application.service;
 
+import com.globeot.globeotback.global.exception.CustomException;
+import com.globeot.globeotback.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,7 +57,8 @@ public class S3Service {
             return "https://" + bucket + ".s3." + region + ".amazonaws.com/" + fileName;
 
         } catch (Exception e) {
-            throw new RuntimeException("S3 업로드 실패");
+            e.printStackTrace(); // 로그 남기는 건 유지하는 게 좋음
+            throw new CustomException(ErrorCode.S3_UPLOAD_FAILED);
         }
     }
 

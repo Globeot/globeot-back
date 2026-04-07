@@ -1,8 +1,16 @@
 package com.globeot.globeotback.school.controller;
 
-import com.globeot.globeotback.school.dto.*;
+import com.globeot.globeotback.global.exception.CustomException;
+import com.globeot.globeotback.global.exception.ErrorCode;
+import com.globeot.globeotback.global.response.ApiResponse;
+import com.globeot.globeotback.school.dto.AssignmentHistoryDto;
+import com.globeot.globeotback.school.dto.SchoolArticleListDto;
+import com.globeot.globeotback.school.dto.SchoolDetailDto;
+import com.globeot.globeotback.school.dto.SchoolListDto;
+import com.globeot.globeotback.school.dto.SchoolSearchDto;
 import com.globeot.globeotback.school.service.SchoolService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,66 +24,79 @@ public class SchoolController {
     private final SchoolService schoolService;
 
     @GetMapping("/search")
-    public List<SchoolSearchDto> searchSchools(
-            @RequestParam(required = false) String name
+    public ResponseEntity<ApiResponse<List<SchoolSearchDto>>> searchSchools(
+            @RequestParam(defaultValue = "") String name
     ) {
-        return schoolService.searchSchools(name);
+        List<SchoolSearchDto> response = schoolService.searchSchools(name);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @GetMapping
-    public List<SchoolListDto> getSchools(
+    public ResponseEntity<ApiResponse<List<SchoolListDto>>> getSchools(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Double minScore,
             @RequestParam(required = false) Double maxScore,
             @RequestParam(defaultValue = "false") Boolean noScoreOnly,
             @AuthenticationPrincipal Long userId
     ) {
-        if (userId == null) {
-            throw new RuntimeException("인증 정보 없음");
-        }
-        return schoolService.getSchools(keyword, minScore, maxScore, noScoreOnly);
+        validateUserId(userId);
+        List<SchoolListDto> response = schoolService.getSchools(keyword, minScore, maxScore, noScoreOnly);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @GetMapping("/{schoolId}")
-    public SchoolDetailDto getSchoolDetail(
+    public ResponseEntity<ApiResponse<SchoolDetailDto>> getSchoolDetail(
             @PathVariable Long schoolId,
             @AuthenticationPrincipal Long userId
     ) {
-        if (userId == null) {
-            throw new RuntimeException("인증 정보 없음");
-        }
-        return schoolService.getSchoolDetail(schoolId, userId);
+        validateUserId(userId);
+        SchoolDetailDto response = schoolService.getSchoolDetail(schoolId, userId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @PostMapping("/{schoolId}/favorite")
-    public String addFavorite(
+    public ResponseEntity<ApiResponse<String>> addFavorite(
             @PathVariable Long schoolId,
             @AuthenticationPrincipal Long userId
     ) {
-        return schoolService.addFavorite(userId, schoolId);
+        validateUserId(userId);
+        String response = schoolService.addFavorite(userId, schoolId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @DeleteMapping("/{schoolId}/favorite")
-    public String removeFavorite(
+    public ResponseEntity<ApiResponse<String>> removeFavorite(
             @PathVariable Long schoolId,
             @AuthenticationPrincipal Long userId
     ) {
-        return schoolService.removeFavorite(userId, schoolId);
+        validateUserId(userId);
+        String response = schoolService.removeFavorite(userId, schoolId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @GetMapping("/{schoolId}/articles")
-    public List<SchoolArticleListDto> getSchoolArticles(
+    public ResponseEntity<ApiResponse<List<SchoolArticleListDto>>> getSchoolArticles(
             @PathVariable Long schoolId,
             @AuthenticationPrincipal Long userId
     ) {
-        return schoolService.getSchoolArticles(schoolId);
+        validateUserId(userId);
+        List<SchoolArticleListDto> response = schoolService.getSchoolArticles(schoolId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @GetMapping("/{schoolId}/history")
-    public List<AssignmentHistoryDto> getSchoolHistory(
+    public ResponseEntity<ApiResponse<List<AssignmentHistoryDto>>> getSchoolHistory(
             @PathVariable Long schoolId,
             @AuthenticationPrincipal Long userId
     ) {
-        return schoolService.getSchoolHistory(schoolId);
+        validateUserId(userId);
+        List<AssignmentHistoryDto> response = schoolService.getSchoolHistory(schoolId);
+        return ResponseEntity.ok(ApiResponse.onSuccess(response));
+    }
+
+    private void validateUserId(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorCode.UNAUTHORIZED_USER);
+        }
     }
 }

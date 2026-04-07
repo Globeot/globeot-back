@@ -2,17 +2,15 @@ package com.globeot.globeotback.auth.service;
 
 import com.globeot.globeotback.auth.domain.AuthAccount;
 import com.globeot.globeotback.auth.domain.EmailVerification;
-import com.globeot.globeotback.auth.dto.LoginRequestDto;
-import com.globeot.globeotback.auth.dto.LoginResponseDto;
-import com.globeot.globeotback.auth.dto.SignupRequestDto;
-import com.globeot.globeotback.auth.dto.SignupResponseDto;
+import com.globeot.globeotback.auth.dto.*;
 import com.globeot.globeotback.auth.enums.AuthProvider;
 import com.globeot.globeotback.auth.jwt.JwtProvider;
 import com.globeot.globeotback.auth.repository.AuthAccountRepository;
 import com.globeot.globeotback.auth.repository.EmailVerificationRepository;
+import com.globeot.globeotback.global.exception.CustomException;
+import com.globeot.globeotback.global.exception.ErrorCode;
 import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.repository.UserRepository;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,31 +45,25 @@ public class AuthService {
     }
 
     private void validateSchoolEmail(String email) {
-
-        if (!(email.endsWith("@ewha.ac.kr")
-                || email.endsWith("@ewhain.net"))) {
-            throw new IllegalArgumentException("학교 메일이 아닙니다.");
+        if (!(email.endsWith("@ewha.ac.kr") || email.endsWith("@ewhain.net"))) {
+            throw new CustomException(ErrorCode.INVALID_SCHOOL_EMAIL);
         }
     }
 
     private void validateUserForSignup(String email) {
+        String normalizedEmail = email.trim().toLowerCase();
 
-        User existingUser = userRepository.findByEmail(email).orElse(null);
+        User existingUser = userRepository.findByEmail(normalizedEmail).orElse(null);
 
         if (existingUser != null) {
-
-            // 활성 유저
             if (existingUser.getDeletedAt() == null) {
-                throw new IllegalArgumentException("이미 가입된 이메일입니다.");
+                throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
 
-            // 탈퇴 후 30일 이내
             if (existingUser.getDeletedAt()
                     .isAfter(LocalDateTime.now().minusDays(30))) {
-                throw new IllegalArgumentException("탈퇴 처리된 계정입니다. 30일 이후 재가입 가능합니다.");
+                throw new CustomException(ErrorCode.USER_RECENTLY_DELETED);
             }
-
-            // 👉 30일 지난 탈퇴 유저는 그냥 통과
         }
     }
 
@@ -82,9 +74,7 @@ public class AuthService {
 
     @Transactional
     public void sendOtp(String email) {
-
         validateSchoolEmail(email);
-
         validateUserForSignup(email);
 
         String otp = generateOtp();
@@ -95,12 +85,12 @@ public class AuthService {
         if (verification != null) {
 
             if (verification.getSendCount() >= 5) {
-                throw new IllegalArgumentException("인증번호 발송 횟수를 초과했습니다.");
+                throw new CustomException(ErrorCode.OTP_SEND_LIMIT_EXCEEDED);
             }
 
             if (verification.getLastSentAt() != null &&
                     verification.getLastSentAt().isAfter(LocalDateTime.now().minusSeconds(60))) {
-                throw new IllegalArgumentException("60초 후 다시 요청해주세요.");
+                throw new CustomException(ErrorCode.OTP_TOO_FAST);
             }
 
             verification.setOtp(otp);
@@ -109,36 +99,36 @@ public class AuthService {
             verification.setLastSentAt(LocalDateTime.now());
 
         } else {
-
             verification = new EmailVerification(
                     email,
                     otp,
                     LocalDateTime.now().plusMinutes(5)
             );
-
             verification.setSendCount(1);
             verification.setLastSentAt(LocalDateTime.now());
         }
 
         emailVerificationRepository.save(verification);
-
         emailService.sendOtpMail(email, otp);
     }
-    @Transactional(noRollbackFor = IllegalArgumentException.class)
+
+    @Transactional(noRollbackFor = CustomException.class)
     public void verifyOtp(String email, String otp) {
+
+        validateUserForSignup(email);
 
         EmailVerification verification =
                 emailVerificationRepository.findByEmail(email)
                         .orElseThrow(() ->
-                                new IllegalArgumentException("인증번호 요청이 없습니다."));
+                                new CustomException(ErrorCode.OTP_NOT_REQUESTED));
 
         if (verification.getBlockedUntil() != null &&
                 verification.getBlockedUntil().isAfter(LocalDateTime.now())) {
-            throw new IllegalArgumentException("인증 시도가 너무 많습니다. 1시간 후 다시 시도하세요.");
+            throw new CustomException(ErrorCode.OTP_BLOCKED);
         }
 
         if (verification.isExpired()) {
-            throw new IllegalArgumentException("인증 시간이 만료되었습니다.");
+            throw new CustomException(ErrorCode.OTP_EXPIRED);
         }
 
         if (!verification.getOtp().equals(otp)) {
@@ -154,80 +144,66 @@ public class AuthService {
             emailVerificationRepository.save(verification);
 
             if (verification.getVerifyFailCount() == 3) {
-                throw new IllegalArgumentException("인증번호 불일치 3회. 인증번호를 다시 요청해주세요.");
+                throw new CustomException(ErrorCode.OTP_FAIL_THREE_TIMES);
             }
 
-            throw new IllegalArgumentException("인증번호가 일치하지 않습니다.");
+            throw new CustomException(ErrorCode.OTP_MISMATCH);
         }
 
         verification.verify();
         verification.setVerifyFailCount(0);
-
         emailVerificationRepository.save(verification);
     }
 
     @Transactional
     public SignupResponseDto signup(SignupRequestDto request) {
-        try {
-            System.out.println("Signup 시작: " + request.getEmail());
 
-            // 이메일 인증 확인
-            EmailVerification verification =
-                    emailVerificationRepository.findByEmail(request.getEmail())
-                            .orElseThrow(() ->
-                                    new IllegalArgumentException("이메일 인증이 필요합니다."));
+        validateUserForSignup(request.getEmail());
 
-            if (!verification.isVerified()) {
-                throw new IllegalArgumentException("이메일 인증이 완료되지 않았습니다.");
-            }
+        EmailVerification verification =
+                emailVerificationRepository.findByEmail(request.getEmail())
+                        .orElseThrow(() ->
+                                new CustomException(ErrorCode.EMAIL_NOT_VERIFIED));
 
-            validateSchoolEmail(request.getEmail());
-
-            validateUserForSignup(request.getEmail());
-
-            // 닉네임 중복 확인
-            if (userRepository.existsByNickname(request.getNickname())) {
-                throw new IllegalArgumentException("이미 사용중인 닉네임입니다.");
-            }
-
-            // User 생성
-            User user = new User(
-                    request.getEmail(),
-                    request.getNickname(),
-                    request.getExchangeStatus()
-            );
-            user.verifyEmail();
-
-            // AuthAccount 생성
-            String passwordHash = passwordEncoder.encode(request.getPassword());
-            AuthAccount authAccount =
-                    new AuthAccount(AuthProvider.LOCAL, request.getEmail(), passwordHash, user);
-            user.addAuthAccount(authAccount);
-
-            // 저장
-            userRepository.save(user);
-
-            // JWT 발급
-            String token = jwtProvider.createToken(user.getId());
-
-            // OTP 삭제
-            emailVerificationRepository.delete(verification);
-
-            return new SignupResponseDto(
-                    user.getId(),
-                    user.getEmail(),
-                    user.getNickname(),
-                    user.getExchangeStatus(),
-                    token
-            );
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
+        if (!verification.isVerified()) {
+            throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);
         }
+
+        validateSchoolEmail(request.getEmail());
+        validateUserForSignup(request.getEmail());
+
+        if (userRepository.existsByNickname(request.getNickname())) {
+            throw new CustomException(ErrorCode.NICKNAME_ALREADY_EXISTS);
+        }
+
+        User user = new User(
+                request.getEmail(),
+                request.getNickname(),
+                request.getExchangeStatus()
+        );
+        user.verifyEmail();
+
+        String passwordHash = passwordEncoder.encode(request.getPassword());
+
+        AuthAccount authAccount =
+                new AuthAccount(AuthProvider.LOCAL, request.getEmail(), passwordHash, user);
+
+        user.addAuthAccount(authAccount);
+        userRepository.save(user);
+
+        String token = jwtProvider.createToken(user.getId());
+        emailVerificationRepository.delete(verification);
+
+        return new SignupResponseDto(
+                user.getId(),
+                user.getEmail(),
+                user.getNickname(),
+                user.getExchangeStatus(),
+                token
+        );
     }
 
-    @Transactional(noRollbackFor = IllegalArgumentException.class)
+    @Transactional(noRollbackFor = CustomException.class)
     public LoginResponseDto login(LoginRequestDto request) {
 
         AuthAccount authAccount = authAccountRepository
@@ -236,12 +212,12 @@ public class AuthService {
                         request.getEmail()
                 )
                 .orElseThrow(() ->
-                        new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다."));
+                        new CustomException(ErrorCode.LOGIN_FAILED));
 
         User user = authAccount.getUser();
 
         if (user.getDeletedAt() != null || !user.isActive()) {
-            throw new IllegalArgumentException("탈퇴한 계정입니다. 30일 이후 재가입 가능합니다.");
+            throw new CustomException(ErrorCode.USER_DELETED);
         }
 
         if (!passwordEncoder.matches(
@@ -249,13 +225,10 @@ public class AuthService {
                 authAccount.getPasswordHash()
         )) {
 
-            System.out.println("before: " + authAccount.getLoginFailCount());
             authAccount.setLoginFailCount(
                     authAccount.getLoginFailCount() + 1
             );
-            System.out.println("after: " + authAccount.getLoginFailCount());
 
-            // 5회 실패 → 비밀번호 초기화
             if (authAccount.getLoginFailCount() >= 5) {
 
                 String tempPassword = generateTempPassword();
@@ -265,7 +238,6 @@ public class AuthService {
                 );
 
                 authAccount.setLoginFailCount(0);
-
                 authAccountRepository.save(authAccount);
 
                 emailService.sendPasswordResetMail(
@@ -273,27 +245,20 @@ public class AuthService {
                         tempPassword
                 );
 
-                throw new IllegalArgumentException(
-                        "로그인 실패 5회로 비밀번호가 초기화되었습니다. 이메일을 확인해주세요."
-                );
+                throw new CustomException(ErrorCode.PASSWORD_RESET);
             }
 
             authAccountRepository.save(authAccount);
 
-            throw new IllegalArgumentException("이메일 또는 비밀번호가 올바르지 않습니다.");
+            throw new CustomException(ErrorCode.LOGIN_FAILED);
         }
 
-        // 로그인 성공 → 실패 횟수 초기화
         authAccount.setLoginFailCount(0);
         authAccount.setLastLoginAt(LocalDateTime.now());
-
         authAccountRepository.save(authAccount);
 
         String token = jwtProvider.createToken(user.getId());
 
-        if (user.isDeleted() || !user.isActive()) {
-            throw new IllegalArgumentException("탈퇴한 계정입니다.");
-        }
         return new LoginResponseDto(user.getId(), token);
     }
 
