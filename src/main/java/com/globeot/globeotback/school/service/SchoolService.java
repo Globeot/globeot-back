@@ -18,6 +18,9 @@ import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -136,17 +139,24 @@ public class SchoolService {
         return "관심 학교가 해제되었습니다.";
     }
 
-    public List<SchoolArticleListDto> getSchoolArticles(Long schoolId) {
+    public Page<SchoolArticleListDto> getSchoolArticles(Long schoolId, int page) {
         schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new CustomException(ErrorCode.SCHOOL_NOT_FOUND));
 
-        return articleRepository.findSchoolArticles(schoolId);
+        Pageable pageable = PageRequest.of(page, 5);
+
+        return articleRepository.findSchoolArticles(schoolId, pageable);
     }
 
-    public List<AssignmentHistoryDto> getSchoolHistory(Long schoolId) {
+    public Page<AssignmentHistoryDto> getSchoolHistory(Long schoolId, int page) {
         schoolRepository.findById(schoolId)
                 .orElseThrow(() -> new CustomException(ErrorCode.SCHOOL_NOT_FOUND));
 
-        return assignmentRepository.findSchoolHistoryBySchoolId(schoolId);
+        Pageable pageable = PageRequest.of(page, 5);
+
+        return assignmentRepository.findSchoolHistoryBySchoolId(
+                schoolId,
+                pageable
+        );
     }
 }
