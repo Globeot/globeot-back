@@ -38,13 +38,6 @@ public class ArticleController {
                 articleService.getArticles(keyword, exchangeStatus, region, type, topic, page, size)));
     }
 
-    // 조회수 증가
-    @PostMapping("/{articleId}/view")
-    public ResponseEntity<ApiResponse<Void>> incrementViewCount(@PathVariable Long articleId) {
-        articleService.incrementViewCount(articleId);
-        return ResponseEntity.ok(ApiResponse.onSuccess(null));
-    }
-
     // 게시글 상세 조회
     @GetMapping("/{articleId}")
     public ResponseEntity<ApiResponse<ArticleDetailDto>> getArticle(
