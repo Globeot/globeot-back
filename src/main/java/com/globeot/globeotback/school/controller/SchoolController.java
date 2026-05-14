@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
 
 import java.util.List;
 
@@ -75,22 +76,30 @@ public class SchoolController {
     }
 
     @GetMapping("/{schoolId}/articles")
-    public ResponseEntity<ApiResponse<List<SchoolArticleListDto>>> getSchoolArticles(
+    public ResponseEntity<ApiResponse<Page<SchoolArticleListDto>>> getSchoolArticles(
             @PathVariable Long schoolId,
+            @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal Long userId
     ) {
         validateUserId(userId);
-        List<SchoolArticleListDto> response = schoolService.getSchoolArticles(schoolId);
+
+        Page<SchoolArticleListDto> response =
+                schoolService.getSchoolArticles(schoolId, page);
+
         return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 
     @GetMapping("/{schoolId}/history")
-    public ResponseEntity<ApiResponse<List<AssignmentHistoryDto>>> getSchoolHistory(
+    public ResponseEntity<ApiResponse<Page<AssignmentHistoryDto>>> getSchoolHistory(
             @PathVariable Long schoolId,
+            @RequestParam(defaultValue = "0") int page,
             @AuthenticationPrincipal Long userId
     ) {
         validateUserId(userId);
-        List<AssignmentHistoryDto> response = schoolService.getSchoolHistory(schoolId);
+
+        Page<AssignmentHistoryDto> response =
+                schoolService.getSchoolHistory(schoolId, page);
+
         return ResponseEntity.ok(ApiResponse.onSuccess(response));
     }
 

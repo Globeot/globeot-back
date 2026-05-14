@@ -81,21 +81,18 @@ public class ArticleService {
         return new ArticlePageDto(content, pageResult.getTotalPages(), pageResult.getTotalElements());
     }
 
-    // ── 조회수 증가 ──────────────────────────────────────────────────────────
-    @Transactional
-    public void incrementViewCount(Long articleId) {
-        Article article = findArticle(articleId);
-        article.setViewCount(article.getViewCount() == null ? 1 : article.getViewCount() + 1);
-    }
-
     // ── 게시글 상세 조회 ─────────────────────────────────────────────────────
-    @Transactional(readOnly = true)
+    @Transactional
     public ArticleDetailDto getArticle(Long userId, Long articleId) {
         Article article = findArticle(articleId);
 
         long commentCount = commentRepository.countByArticle_Id(articleId);
         boolean isAuthor = userId != null && userId.equals(article.getAuthor().getId());
         boolean isScrapped = userId != null && scrapRepository.existsByUser_IdAndArticle_Id(userId, articleId);
+
+        if (!isAuthor) {
+            article.setViewCount(article.getViewCount() == null ? 1 : article.getViewCount() + 1);
+        }
 
         return toDetailDto(article, commentCount, isAuthor, isScrapped);
     }
