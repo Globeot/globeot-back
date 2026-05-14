@@ -38,24 +38,32 @@ public interface ArticleRepository extends JpaRepository<Article, Long> {
         """)
     List<Object[]> findMyArticlesWithCommentCount(@Param("userId") Long userId);
 
-    @Query("""
-        SELECT new com.globeot.globeotback.school.dto.SchoolArticleListDto(
-            a.id,
-            a.school.id,
-            CAST(a.exchangeStatus AS string),
-            a.title,
-            a.createdAt,
-            u.nickname,
-            COUNT(c.id)
-        )
-        FROM Article a
-        JOIN a.author u
-        LEFT JOIN Comment c ON c.article.id = a.id
-        WHERE a.school.id = :schoolId
-        GROUP BY a.id, a.exchangeStatus, a.title, a.createdAt, u.nickname
-        ORDER BY a.createdAt DESC
-    """)
-    List<SchoolArticleListDto> findSchoolArticles(@Param("schoolId") Long schoolId);
+    @Query(value = """
+    SELECT new com.globeot.globeotback.school.dto.SchoolArticleListDto(
+        a.id,
+        a.school.id,
+        CAST(a.exchangeStatus AS string),
+        a.title,
+        a.createdAt,
+        u.nickname,
+        COUNT(c.id)
+    )
+    FROM Article a
+    JOIN a.author u
+    LEFT JOIN Comment c ON c.article.id = a.id
+    WHERE a.school.id = :schoolId
+    GROUP BY a.id, a.exchangeStatus, a.title, a.createdAt, u.nickname
+    ORDER BY a.createdAt DESC
+""",
+            countQuery = """
+    SELECT COUNT(DISTINCT a.id)
+    FROM Article a
+    WHERE a.school.id = :schoolId
+""")
+    Page<SchoolArticleListDto> findSchoolArticles(
+            @Param("schoolId") Long schoolId,
+            Pageable pageable
+    );
 
     @Query(value = """
         SELECT a, COUNT(c.id)
