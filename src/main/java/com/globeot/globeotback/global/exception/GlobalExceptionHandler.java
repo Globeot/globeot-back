@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 
 @RestControllerAdvice
@@ -40,6 +41,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(ApiResponse.onFailure("COMMON400", "필수 요청 데이터가 누락되었습니다: " + e.getRequestPartName()));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Object>> handleMaxUploadSizeExceededException(MaxUploadSizeExceededException e) {
+        ErrorCode errorCode = ErrorCode.FILE_SIZE_EXCEEDED;
+        return ResponseEntity
+                .status(errorCode.getStatus())
+                .body(ApiResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
