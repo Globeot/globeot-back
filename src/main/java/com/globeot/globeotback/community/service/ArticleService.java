@@ -257,7 +257,15 @@ public class ArticleService {
     public void deleteComment(Long userId, Long commentId) {
         Comment comment = findComment(commentId);
         checkAuthor(userId, comment.getUser().getId());
-        commentRepository.delete(comment);
+
+        // 대댓글이 달려있으면 대화 흐름 유지를 위해 soft-delete (content만 교체)
+        if (commentRepository.existsByParent_Id(commentId)) {
+            comment.setContent("삭제된 댓글입니다.");
+            comment.setUpdatedAt(LocalDateTime.now());
+            commentRepository.save(comment);
+        } else {
+            commentRepository.delete(comment);
+        }
     }
 
     // ── 내부 헬퍼 ────────────────────────────────────────────────────────────
@@ -283,7 +291,8 @@ public class ArticleService {
 
     private void checkAuthor(Long userId, Long authorId) {
         if (!userId.equals(authorId)) {
-            throw new IllegalStateException("권한이 없습니다.");
+            throw new com.globeot.globeotback.global.exception.CustomException(
+                    com.globeot.globeotback.global.exception.ErrorCode.FORBIDDEN);
         }
     }
 

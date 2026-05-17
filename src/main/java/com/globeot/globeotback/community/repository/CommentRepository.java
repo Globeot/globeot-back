@@ -25,4 +25,6 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     Long countByArticle_Id(Long articleId);
 
     List<Comment> findAllByArticle_IdOrderByCreatedAtAsc(Long articleId);
+
+    boolean existsByParent_Id(Long parentId);
 }
