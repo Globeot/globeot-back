@@ -53,7 +53,8 @@
         APPLICATION_PENDING(HttpStatus.BAD_REQUEST, "APPLICATION4007", "지원서가 아직 처리 중입니다."),
 
         // S3
-        S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S35001", "파일 업로드에 실패했습니다.");
+        S3_UPLOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "S35001", "파일 업로드에 실패했습니다."),
+        FILE_SIZE_EXCEEDED(HttpStatus.PAYLOAD_TOO_LARGE, "FILE4131", "파일 크기가 허용 한도(30MB)를 초과했습니다.");
 
         private final HttpStatus status;
         private final String code;
