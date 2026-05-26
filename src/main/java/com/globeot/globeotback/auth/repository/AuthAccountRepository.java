@@ -2,6 +2,7 @@ package com.globeot.globeotback.auth.repository;
 
 import com.globeot.globeotback.auth.domain.AuthAccount;
 import com.globeot.globeotback.auth.enums.AuthProvider;
+import com.globeot.globeotback.user.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
@@ -17,4 +18,6 @@ public interface AuthAccountRepository extends JpaRepository<AuthAccount, Long> 
             AuthProvider provider,
             String providerUserId
     );
+
+    Optional<Object> findByUser(User user);
 }
