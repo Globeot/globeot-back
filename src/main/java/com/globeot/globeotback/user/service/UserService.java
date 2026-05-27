@@ -1,6 +1,9 @@
 package com.globeot.globeotback.user.service;
 
 import com.globeot.globeotback.application.repository.ApplicationRepository;
+import com.globeot.globeotback.auth.domain.AuthAccount;
+import com.globeot.globeotback.auth.enums.AuthProvider;
+import com.globeot.globeotback.auth.repository.AuthAccountRepository;
 import com.globeot.globeotback.community.enums.ArticleStatus;
 import com.globeot.globeotback.community.enums.ReportStatus;
 import com.globeot.globeotback.community.enums.Type;
@@ -16,6 +19,7 @@ import com.globeot.globeotback.user.dto.*;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
 import com.globeot.globeotback.user.repository.UserRepository;
 import jakarta.transaction.Transactional;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,14 +36,17 @@ public class UserService {
     private final ScrapRepository scrapRepository;
     private final FavoriteRepository favoriteRepository;
     private final ApplicationRepository applicationRepository;
+    private final AuthAccountRepository authAccountRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(UserRepository userRepository,
                        ArticleRepository articleRepository,
+                       PasswordEncoder passwordEncoder,
                        ReportRepository reportRepository,
                        CommentRepository commentRepository,
                        ScrapRepository scrapRepository,
                        FavoriteRepository favoriteRepository,
-                       ApplicationRepository applicationRepository) {
+                       ApplicationRepository applicationRepository, AuthAccountRepository authAccountRepository) {
         this.userRepository = userRepository;
         this.articleRepository = articleRepository;
         this.reportRepository = reportRepository;
@@ -47,6 +54,8 @@ public class UserService {
         this.scrapRepository = scrapRepository;
         this.favoriteRepository = favoriteRepository;
         this.applicationRepository = applicationRepository;
+        this.authAccountRepository = authAccountRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -131,7 +140,7 @@ public class UserService {
                         (String) row[2],
                         (Type) row[3],
                         (ArticleStatus) row[4],
-                        (java.time.LocalDateTime) row[5],
+                        (LocalDateTime) row[5],
                         (Long) row[6]
                 ))
                 .collect(Collectors.toList());
@@ -146,7 +155,7 @@ public class UserService {
                         (Long) row[0],
                         (String) row[1],
                         (String) row[2],
-                        (java.time.LocalDateTime) row[3]
+                        (LocalDateTime) row[3]
                 ))
                 .collect(Collectors.toList());
     }
@@ -167,7 +176,7 @@ public class UserService {
                             (String) row[3],
                             (Type) row[4],
                             (ArticleStatus) row[5],
-                            (java.time.LocalDateTime) row[6],
+                            (LocalDateTime) row[6],
                             commentCount
                     );
                 })
@@ -177,5 +186,46 @@ public class UserService {
     @Transactional
     public List<MyFavoriteDto> getMyFavoriteSchools(Long userId) {
         return favoriteRepository.findMyFavoriteSchools(userId);
+    }
+
+    @Transactional
+    public void resetPassword(
+            Long userId,
+            ResetPasswordRequestDto request
+    ) {
+
+        if (!request.getNewPassword()
+                .equals(request.getConfirmPassword())) {
+            throw new CustomException(ErrorCode.PASSWORD_NOT_MATCH);
+        }
+
+        validatePassword(request.getNewPassword());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        AuthAccount authAccount = authAccountRepository
+                .findByProviderAndProviderUserId(
+                        AuthProvider.LOCAL,
+                        user.getEmail()
+                )
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.AUTH_ACCOUNT_NOT_FOUND));
+
+        authAccount.setPasswordHash(
+                passwordEncoder.encode(request.getNewPassword())
+        );
+
+        authAccountRepository.save(authAccount);
+    }
+
+    private void validatePassword(String password) {
+
+        String regex = "^(?=.*[A-Za-z])(?=.*\\d)[A-Za-z\\d]{8,}$";
+
+        if (!password.matches(regex)) {
+            throw new CustomException(ErrorCode.INVALID_PASSWORD_FORMAT);
+        }
     }
 }

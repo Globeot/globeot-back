@@ -26,6 +26,9 @@
         LOGIN_FAILED(HttpStatus.BAD_REQUEST, "AUTH4013", "이메일 또는 비밀번호가 올바르지 않습니다."),
         USER_DELETED(HttpStatus.BAD_REQUEST, "AUTH4014", "탈퇴한 계정입니다."),
         PASSWORD_RESET(HttpStatus.BAD_REQUEST, "AUTH4015", "비밀번호가 초기화되었습니다."),
+        PASSWORD_NOT_MATCH(HttpStatus.BAD_REQUEST, "AUTH4008", "비밀번호가 일치하지 않습니다."),
+        AUTH_ACCOUNT_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH4041", "인증 계정을 찾을 수 없습니다."),
+        INVALID_PASSWORD_FORMAT(HttpStatus.BAD_REQUEST, "AUTH4009", "비밀번호는 영문과 숫자를 포함한 8자 이상이어야 합니다."),
 
         // Email
         EMAIL_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "EMAIL5001", "이메일 전송에 실패했습니다."),

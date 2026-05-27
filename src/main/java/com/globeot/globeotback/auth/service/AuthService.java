@@ -231,19 +231,7 @@ public class AuthService {
 
             if (authAccount.getLoginFailCount() >= 5) {
 
-                String tempPassword = generateTempPassword();
-
-                authAccount.setPasswordHash(
-                        passwordEncoder.encode(tempPassword)
-                );
-
-                authAccount.setLoginFailCount(0);
-                authAccountRepository.save(authAccount);
-
-                emailService.sendPasswordResetMail(
-                        authAccount.getProviderUserId(),
-                        tempPassword
-                );
+                issueTempPassword(authAccount);
 
                 throw new CustomException(ErrorCode.PASSWORD_RESET);
             }
@@ -262,7 +250,49 @@ public class AuthService {
         return new LoginResponseDto(user.getId(), token);
     }
 
+    @Transactional
+    public void forgotPassword(String email) {
+
+        validateSchoolEmail(email);
+
+        AuthAccount authAccount = authAccountRepository
+                .findByProviderAndProviderUserId(
+                        AuthProvider.LOCAL,
+                        email
+                )
+                .orElseThrow(() ->
+                        new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        User user = authAccount.getUser();
+
+        if (user.getDeletedAt() != null || !user.isActive()) {
+            throw new CustomException(ErrorCode.USER_DELETED);
+        }
+
+        issueTempPassword(authAccount);
+    }
+
     private String generateTempPassword() {
         return UUID.randomUUID().toString().substring(0, 10);
     }
+
+    private void issueTempPassword(AuthAccount authAccount) {
+
+        String tempPassword = generateTempPassword();
+
+        authAccount.setPasswordHash(
+                passwordEncoder.encode(tempPassword)
+        );
+
+        authAccount.setLoginFailCount(0);
+
+        authAccountRepository.save(authAccount);
+
+        emailService.sendPasswordResetMail(
+                authAccount.getProviderUserId(),
+                tempPassword
+        );
+    }
+
+
 }
