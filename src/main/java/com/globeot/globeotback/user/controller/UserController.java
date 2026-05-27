@@ -4,12 +4,7 @@ import com.globeot.globeotback.global.exception.CustomException;
 import com.globeot.globeotback.global.exception.ErrorCode;
 import com.globeot.globeotback.global.response.ApiResponse;
 import com.globeot.globeotback.user.domain.User;
-import com.globeot.globeotback.user.dto.MyArticleDto;
-import com.globeot.globeotback.user.dto.MyCommentDto;
-import com.globeot.globeotback.user.dto.MyFavoriteDto;
-import com.globeot.globeotback.user.dto.MyScrapDto;
-import com.globeot.globeotback.user.dto.UserProfileDto;
-import com.globeot.globeotback.user.dto.UserProfileUpdateDto;
+import com.globeot.globeotback.user.dto.*;
 import com.globeot.globeotback.user.repository.UserRepository;
 import com.globeot.globeotback.user.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -93,5 +88,20 @@ public class UserController {
         if (userId == null) {
             throw new CustomException(ErrorCode.UNAUTHORIZED_USER);
         }
+    }
+
+    @PatchMapping("/password")
+    public ResponseEntity<ApiResponse<String>> resetPassword(
+            @AuthenticationPrincipal Long userId,
+            @RequestBody ResetPasswordRequestDto request
+    ) {
+
+        validateUserId(userId);
+
+        userService.resetPassword(userId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess("비밀번호가 변경되었습니다.")
+        );
     }
 }

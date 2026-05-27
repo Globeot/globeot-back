@@ -1,11 +1,6 @@
 package com.globeot.globeotback.auth.controller;
 
-import com.globeot.globeotback.auth.dto.LoginRequestDto;
-import com.globeot.globeotback.auth.dto.LoginResponseDto;
-import com.globeot.globeotback.auth.dto.OtpRequestDto;
-import com.globeot.globeotback.auth.dto.OtpVerifyRequestDto;
-import com.globeot.globeotback.auth.dto.SignupRequestDto;
-import com.globeot.globeotback.auth.dto.SignupResponseDto;
+import com.globeot.globeotback.auth.dto.*;
 import com.globeot.globeotback.auth.service.AuthService;
 import com.globeot.globeotback.global.response.ApiResponse;
 import com.globeot.globeotback.user.repository.UserRepository;
@@ -68,6 +63,22 @@ public class AuthController {
         LoginResponseDto response = authService.login(request);
         return ResponseEntity.ok(
                 ApiResponse.onSuccess("AUTH2005", "로그인에 성공했습니다.", response)
+        );
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<String>> forgotPassword(
+            @RequestBody ForgotPasswordRequestDto request
+    ) {
+
+        authService.forgotPassword(request.getEmail());
+
+        return ResponseEntity.ok(
+                ApiResponse.onSuccess(
+                        "AUTH2006",
+                        "임시 비밀번호가 이메일로 발송되었습니다.",
+                        "임시 비밀번호 발송 완료"
+                )
         );
     }
 }
