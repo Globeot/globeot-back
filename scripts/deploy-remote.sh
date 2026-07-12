@@ -25,9 +25,17 @@ setsid nohup java -Xms256m -Xmx512m -jar app.jar \
   --spring.config.additional-location=file:.env.properties \
   > app.log 2>&1 < /dev/null &
 echo $! > app.pid
-sleep 12
+sleep 5
 
-echo "[4/4] 헬스체크"
-ps -p "$(cat app.pid)" -o pid,cmd
-curl -sf http://localhost:8080/health || { echo "HEALTH_FAILED"; tail -n 40 app.log; exit 1; }
-echo "DEPLOY_OK"
+echo "[4/4] 헬스체크 (기동 완료까지 최대 2분 폴링)"
+ps -p "$(cat app.pid)" -o pid,cmd || true
+for i in $(seq 1 40); do
+  if curl -sf http://localhost:8080/health >/dev/null 2>&1; then
+    echo "DEPLOY_OK"
+    exit 0
+  fi
+  sleep 3
+done
+echo "HEALTH_FAILED"
+tail -n 60 app.log
+exit 1
