@@ -1,8 +1,17 @@
-name: Deploy to EC2
+name: Deploy to EC2 (SSM)
 
 on:
   push:
     branches: [ "main" ]
+
+permissions:
+  id-token: write   # OIDC로 AWS 역할을 assume 하기 위해 필요
+  contents: read
+
+env:
+  AWS_REGION: ap-northeast-2
+  DEPLOY_BUCKET: globeot-deploy-080403790659
+  INSTANCE_ID: i-0e2b05169f5203845
 
 jobs:
   deploy:
@@ -10,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -24,52 +33,51 @@ jobs:
       - name: Build jar
         run: ./gradlew clean bootJar -x test
 
-      - name: Set up SSH key
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::080403790659:role/github-actions-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Upload artifacts to S3
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > key.pem
-          chmod 600 key.pem
+          JAR=$(ls build/libs/*.jar | grep -v plain | head -n1)
+          echo "Uploading $JAR"
+          aws s3 cp "$JAR" "s3://${DEPLOY_BUCKET}/app.jar"
+          aws s3 cp scripts/deploy-remote.sh "s3://${DEPLOY_BUCKET}/deploy-remote.sh"
 
-      - name: Copy jar to EC2
+      - name: Deploy via SSM
         run: |
-          scp -o StrictHostKeyChecking=no -i key.pem build/libs/*.jar \
-          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:~/globeot-back/app.jar
+          cat > ssm-input.json <<JSON
+          {
+            "InstanceIds": ["${INSTANCE_ID}"],
+            "DocumentName": "AWS-RunShellScript",
+            "Comment": "Deploy globeot-back",
+            "Parameters": {
+              "commands": [
+                "set -e",
+                "aws s3 cp s3://${DEPLOY_BUCKET}/deploy-remote.sh /tmp/deploy-remote.sh",
+                "chmod +x /tmp/deploy-remote.sh",
+                "runuser -l ec2-user -c 'bash /tmp/deploy-remote.sh'"
+              ]
+            }
+          }
+          JSON
 
-      - name: Deploy on EC2
-        run: |
-          ssh -o StrictHostKeyChecking=no -i key.pem \
-          ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
+          CMD_ID=$(aws ssm send-command --cli-input-json file://ssm-input.json \
+            --query Command.CommandId --output text)
+          echo "SSM Command ID: $CMD_ID"
 
-          cd ~/globeot-back
+          aws ssm wait command-executed --command-id "$CMD_ID" --instance-id "$INSTANCE_ID" || true
+          STATUS=$(aws ssm get-command-invocation --command-id "$CMD_ID" \
+            --instance-id "$INSTANCE_ID" --query Status --output text)
 
-          cat > .env.properties << 'ENVEOF'
-          ${{ secrets.ENV_FILE }}
-          ENVEOF
+          echo "===== Remote STDOUT ====="
+          aws ssm get-command-invocation --command-id "$CMD_ID" \
+            --instance-id "$INSTANCE_ID" --query StandardOutputContent --output text
+          echo "===== Remote STDERR ====="
+          aws ssm get-command-invocation --command-id "$CMD_ID" \
+            --instance-id "$INSTANCE_ID" --query StandardErrorContent --output text
 
-          echo "Stopping app..."
-          if [ -f app.pid ]; then
-            kill -15 "$(cat app.pid)" || true
-            rm -f app.pid
-            sleep 5
-          fi
-
-          pkill -f 'app.jar' || true
-          sleep 5
-
-          echo "Starting app..."
-          setsid nohup java -Xms256m -Xmx512m -jar app.jar \
-            --spring.profiles.active=prod \
-            --spring.config.additional-location=file:.env.properties \
-            > app.log 2>&1 < /dev/null &
-
-          echo $! > app.pid
-
-          sleep 10
-
-          echo "PID: $(cat app.pid)"
-          ps -p "$(cat app.pid)" -o pid,cmd
-
-          echo "Health check:"
-          curl -I http://localhost:8080/health || true
-
-          EOF
+          echo "Final status: $STATUS"
+          test "$STATUS" = "Success"
