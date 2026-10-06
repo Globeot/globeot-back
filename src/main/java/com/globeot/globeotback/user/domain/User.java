@@ -37,6 +37,9 @@ public class User {
     @Column(name = "exchange_status", nullable = false, length = 30)
     private ExchangeStatus exchangeStatus;
 
+    @Column(name = "terms_agreed", nullable = false)
+    private boolean termsAgreed = false;
+
     /**
      * USER / ADMIN
      * 추후 권한 확장용
@@ -178,5 +181,13 @@ public class User {
 
     public LocalDateTime getDeletedAt() {
         return deletedAt;
+    }
+
+    public boolean isTermsAgreed() {
+        return termsAgreed;
+    }
+
+    public void agreeToTerms() {
+        this.termsAgreed = true;
     }
 }
