@@ -182,6 +182,9 @@ public class AuthService {
                 request.getExchangeStatus()
         );
         user.verifyEmail();
+        if (request.isTermsAgreed()) {
+            user.agreeToTerms();
+        }
 
         String passwordHash = passwordEncoder.encode(request.getPassword());
 
@@ -247,7 +250,11 @@ public class AuthService {
 
         String token = jwtProvider.createToken(user.getId());
 
-        return new LoginResponseDto(user.getId(), token);
+        return new LoginResponseDto(
+                user.getId(),
+                token,
+                user.isTermsAgreed()
+        );
     }
 
     @Transactional

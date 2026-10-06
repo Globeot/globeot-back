@@ -10,5 +10,6 @@ public class SignupRequestDto {
     private String password;
     private String nickname;
     private ExchangeStatus exchangeStatus;
+    private boolean termsAgreed;
 
 }
