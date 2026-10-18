@@ -11,19 +11,43 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
-
+import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(CustomException.class)
-    public ResponseEntity<ApiResponse<Object>> handleCustomException(CustomException e) {
+    public ResponseEntity<?> handleCustomException(CustomException e) {
         ErrorCode errorCode = e.getErrorCode();
 
+        // 재가입 제한 에러인 경우에만 날짜를 추가
+        if (e.getRejoinAvailableAt() != null) {
+            Map<String, Object> response = new LinkedHashMap<>();
+
+            response.put("code", errorCode.getCode());
+            response.put("message", errorCode.getMessage());
+            response.put(
+                    "rejoinAvailableAt",
+                    e.getRejoinAvailableAt().format(
+                            DateTimeFormatter.ISO_LOCAL_DATE_TIME
+                    )
+            );
+
+            return ResponseEntity
+                    .status(errorCode.getStatus())
+                    .body(response);
+        }
+
+        // 기존 에러 응답은 그대로 유지
         return ResponseEntity
                 .status(errorCode.getStatus())
-                .body(ApiResponse.onFailure(errorCode.getCode(), errorCode.getMessage()));
+                .body(ApiResponse.onFailure(
+                        errorCode.getCode(),
+                        errorCode.getMessage()
+                ));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

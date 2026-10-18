@@ -60,9 +60,15 @@ public class AuthService {
                 throw new CustomException(ErrorCode.EMAIL_ALREADY_EXISTS);
             }
 
+            LocalDateTime rejoinAvailableAt =
+                    existingUser.getDeletedAt().plusDays(30);
+
             if (existingUser.getDeletedAt()
                     .isAfter(LocalDateTime.now().minusDays(30))) {
-                throw new CustomException(ErrorCode.USER_RECENTLY_DELETED);
+                throw new CustomException(
+                        ErrorCode.USER_RECENTLY_DELETED,
+                        existingUser.getDeletedAt().plusDays(30)
+                );
             }
         }
     }
