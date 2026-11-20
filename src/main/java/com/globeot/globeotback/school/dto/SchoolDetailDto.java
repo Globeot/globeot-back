@@ -25,7 +25,7 @@ public class SchoolDetailDto {
     private String monthlyCost;
     private Level monthlyCostLevel;
 
-    private int internationalStudentRatio;
+    private Integer internationalStudentRatio;
     private String buddyProgram;
     private String officialSite;
 
