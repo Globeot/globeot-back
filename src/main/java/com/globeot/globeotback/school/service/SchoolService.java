@@ -85,6 +85,8 @@ public class SchoolService {
         return SchoolDetailDto.builder()
                 .schoolId(school.getId())
                 .imgUrl(school.getImageUrl())
+                .imageCredit(school.getImageCredit())
+                .imageSourceUrl(school.getImageSourceUrl())
                 .name(school.getName())
                 .city(school.getCity())
                 .country(school.getCountry())
