@@ -28,6 +28,13 @@ public class School {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    // 사진 작가와 라이선스 표기. 예: "Daniel Schwen / CC BY-SA 2.5"
+    private String imageCredit;
+
+    // 사진 원본 페이지 (Wikimedia Commons 파일 페이지)
+    @Column(length = 500)
+    private String imageSourceUrl;
+
     @Column(columnDefinition = "json")
     private List<String> popularMajors;
 

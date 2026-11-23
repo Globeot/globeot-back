@@ -14,6 +14,8 @@ public class SchoolDetailDto {
 
     private Long schoolId;
     private String imgUrl;
+    private String imageCredit;
+    private String imageSourceUrl;
     private String name;
     private String city;
     private String country;
