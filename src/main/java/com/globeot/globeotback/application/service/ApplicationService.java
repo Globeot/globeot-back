@@ -31,6 +31,7 @@ public class ApplicationService {
     private final S3Service s3Service;
     private final SchoolRepository schoolRepository;
     private final ObjectMapper objectMapper;
+    private final ApplicationNotifier applicationNotifier;
 
     private void validateSchools(List<ApplicationSubmitDto.SchoolRequest> schools) {
         if (schools == null || schools.isEmpty()) {
@@ -92,6 +93,18 @@ public class ApplicationService {
                 .build();
 
         applicationRepository.save(application);
+
+        String firstChoiceSchool = request.getSchools().stream()
+                .filter(s -> s.getPriority() == 1)
+                .map(ApplicationSubmitDto.SchoolRequest::getSchoolName)
+                .findFirst()
+                .orElse(null);
+
+        applicationNotifier.notifyNewApplication(
+                request.getSemester(),
+                firstChoiceSchool,
+                applicationRepository.countByStatus(Status.PENDING)
+        );
     }
 
     public MyRankDto getMyRanking(Long userId) throws Exception {

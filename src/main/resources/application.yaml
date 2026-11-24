@@ -38,6 +38,11 @@ server:
     # 한도 초과 요청도 본문을 끝까지 읽어야 연결이 끊기지 않고 413 응답이 전달됨
     max-swallow-size: 25MB
 
+app:
+  notify:
+    # 지원서 제출 알림을 받을 운영진 메일 (쉼표로 여러 개 가능, 비우면 발송 안 함)
+    admin-email: ${ADMIN_NOTIFY_EMAIL:globetback@gmail.com}
+
 aws:
   s3:
     bucket: ${S3_BUCKET_NAME}

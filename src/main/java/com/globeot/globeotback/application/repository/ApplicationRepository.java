@@ -15,5 +15,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     List<Application> findByStatusOrderByConvertedScoreDesc(Status status);
 
+    long countByStatus(Status status);
+
     void deleteByUser_Id(Long userId);
 }
