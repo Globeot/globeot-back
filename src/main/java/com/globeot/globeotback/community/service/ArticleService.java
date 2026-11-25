@@ -6,6 +6,8 @@ import com.globeot.globeotback.community.domain.Report;
 import com.globeot.globeotback.community.domain.Scrap;
 import com.globeot.globeotback.community.dto.*;
 import com.globeot.globeotback.community.enums.ArticleStatus;
+import com.globeot.globeotback.community.event.ArticleCreatedEvent;
+import com.globeot.globeotback.community.event.CommentCreatedEvent;
 import com.globeot.globeotback.community.enums.Region;
 import com.globeot.globeotback.community.enums.ReportStatus;
 import com.globeot.globeotback.community.enums.Type;
@@ -15,6 +17,7 @@ import com.globeot.globeotback.school.repository.SchoolRepository;
 import com.globeot.globeotback.user.domain.User;
 import com.globeot.globeotback.user.enums.ExchangeStatus;
 import com.globeot.globeotback.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,19 +36,22 @@ public class ArticleService {
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
     private final SchoolRepository schoolRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public ArticleService(ArticleRepository articleRepository,
                           CommentRepository commentRepository,
                           ScrapRepository scrapRepository,
                           ReportRepository reportRepository,
                           UserRepository userRepository,
-                          SchoolRepository schoolRepository) {
+                          SchoolRepository schoolRepository,
+                          ApplicationEventPublisher eventPublisher) {
         this.articleRepository = articleRepository;
         this.commentRepository = commentRepository;
         this.scrapRepository = scrapRepository;
         this.reportRepository = reportRepository;
         this.userRepository = userRepository;
         this.schoolRepository = schoolRepository;
+        this.eventPublisher = eventPublisher;
     }
 
     // ── 게시글 목록 조회 + 검색 ──────────────────────────────────────────────
@@ -125,6 +131,8 @@ public class ArticleService {
                 .updatedAt(LocalDateTime.now())
                 .build();
         articleRepository.save(article);
+        eventPublisher.publishEvent(new ArticleCreatedEvent(
+                article.getId(), String.valueOf(dto.getType()), dto.getTitle(), author.getNickname(), dto.getContent()));
         return toDetailDto(article, 0L, true, false);
     }
 
@@ -239,6 +247,8 @@ public class ArticleService {
                 .updatedAt(LocalDateTime.now())
                 .build();
         commentRepository.save(comment);
+        eventPublisher.publishEvent(new CommentCreatedEvent(
+                article.getId(), article.getTitle(), user.getNickname(), dto.getContent(), parent != null));
         return toCommentDto(comment, userId);
     }
 
