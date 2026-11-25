@@ -42,6 +42,8 @@ app:
   notify:
     # 지원서 제출 알림을 받을 운영진 메일 (쉼표로 여러 개 가능, 비우면 발송 안 함)
     admin-email: ${ADMIN_NOTIFY_EMAIL:globetback@gmail.com}
+    # 커뮤니티 새 글·댓글 알림을 받을 운영진 메일 (쉼표로 여러 개, 비우면 발송 안 함)
+    community-email: ${COMMUNITY_NOTIFY_EMAIL:}
 
 aws:
   s3:
